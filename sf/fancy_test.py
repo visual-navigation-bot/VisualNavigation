@@ -3,23 +3,9 @@ import pygame
 import numpy as np
 import random
 
-
-# calculate distance matrix
-# initialize pedestrian is update party information correct
-# is tartget force correct?
-# is obstacle force correct?
-# is the repulsive force correct?
-# is there sight angle arrangement?
-# is there max velocity check?
-# is the attraction force correct?
-# 3 simulations, one edge case, two fancy case
-# few packed simple tests
+# This is tests fancy version tests
 
 def test1():
-    # test distance matrix calculation
-
-
-def test():
     sim_env = sim.Sim('Pedestrian Simulation')
     """
     adding obstacles
