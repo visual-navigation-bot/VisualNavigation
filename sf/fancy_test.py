@@ -6,7 +6,7 @@ import random
 # This is tests fancy version tests
 
 def test1():
-    sim_env = sim.Sim('Pedestrian Simulation')
+    sim_env = sim.Sim('Pedestrian Simulation', (800, 600))
     """
     adding obstacles
     """
@@ -45,7 +45,8 @@ def test1():
              'friend': np.array([]),
              'V_others': np.array([]),
              'R_others': np.array([]),
-             'dist_obs_func': dist_obstacle
+             'dist_obs_func': dist_obstacle,
+             'pid': 0
              }
     sim_env.add_object('ped', param)
 
@@ -63,7 +64,8 @@ def test1():
              'friend': np.array([True]),
              'V_others': np.array([100.]),
              'R_others': np.array([50.]),
-             'dist_obs_func': dist_obstacle
+             'dist_obs_func': dist_obstacle,
+             'pid': 1
              }
     sim_env.add_object('ped', param)
 
@@ -81,10 +83,11 @@ def test1():
              'friend': np.array([False, True]),
              'V_others': np.array([100., 100.]),
              'R_others': np.array([50., 50.]),
-             'dist_obs_func': dist_obstacle
+             'dist_obs_func': dist_obstacle,
+             'pid': 2
              }
     sim_env.add_object('ped', param)
 
     sim_env.run()
-test()
+test1()
 
