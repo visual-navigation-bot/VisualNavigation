@@ -3,26 +3,16 @@ import pygame
 import numpy as np
 import random
 
-
-
+# this is the unit test file of all functions in simulation.py
 def test1():
     """
     test distance matrix calculation, party formulation variable,
     id record method, add_object method and remove_object method
     """
     print "################TEST1##################"
+
+
     sim_env = sim.Sim('Pedestrian Simulation', (800,600))
-    def dist_obstacle(s):
-        """
-        calculate closest vector distant from the ped to obstacle
-        Input:
-            s: np.1darray; the location of the pedestrian
-        """
-        if s[1] - 100 < 500 - s[1]:
-            return np.array([0., s[1] - 100.])
-        if s[1] - 100 > 500 - s[1]:
-            return np.array([0., s[1] - 500.])
-        return np.array([100000, 100000])
     sim_env._get_dist_matrix()
     print "test1-1: no object dist_matrix calculation"
     print "should print out []:"
@@ -48,6 +38,18 @@ def test1():
     print "should print out {}"
     print sim_env.PID
     print ""
+
+    def dist_obstacle(s):
+        """
+        calculate closest vector distant from the ped to obstacle
+        Input:
+            s: np.1darray; the location of the pedestrian
+        """
+        if s[1] - 100 < 500 - s[1]:
+            return np.array([0., s[1] - 100.])
+        if s[1] - 100 > 500 - s[1]:
+            return np.array([0., s[1] - 500.])
+        return np.array([100000, 100000])
 
     param = {
              'init_s': np.array([100., 150.]),
@@ -442,16 +444,239 @@ def test2():
              'pid': 4
              }
     sim_env.add_object('ped', param)
+    print "test2-1: three pedestrians obstacle, repulsive force and maximum velocity check"
     obstacle_force_check(sim_env)
     repulsive_force_check(sim_env)
     maximum_velocity_check(sim_env)
 
+    print "test2-2: two pedestrians obstacle, repulsive force and maximum velocity check"
+    sim_env.remove_pedestrians([6])
+    obstacle_force_check(sim_env)
+    repulsive_force_check(sim_env)
+    maximum_velocity_check(sim_env)
+
+    print "test2-2: one pedestrians obstacle, repulsive force and maximum velocity check"
+    sim_env.remove_pedestrians([0])
+    obstacle_force_check(sim_env)
+    maximum_velocity_check(sim_env)
 
 
+def test3():
+    """
+    test simple run function 
+    """
+    print "################TEST3##################"
 
-# is the attraction force correct?
-# 3 simulations, one edge case, two fancy case
-# few packed simple tests
+    sim_env = sim.Sim('Pedestrian Simulation', (800, 600))
+    """
+    adding obstacles
+    """
+    param = {
+             'start': np.array([100,100]), 
+             'end': np.array([700,100])
+             }
+    sim_env.add_object('obs', param)
 
-test2()
+    param = {
+             'start': np.array([100,500]), 
+             'end': np.array([700,500])
+             }
+    sim_env.add_object('obs', param)
+
+    """
+    adding pedestrians
+    """
+    def dist_obstacle(s):
+        """
+        calculate the closest vector distant from the ped to obstacle
+        Input:
+            s: np.1darray; the location of the pedestrian
+        """
+        if s[1] - 100 < 500 - s[1]:
+            return np.array([0., s[1] - 100.])
+        if s[1] - 100 > 500 - s[1]:
+            return np.array([0., s[1] - 500.])
+        return np.array([100000, 100000])
+
+    param = {
+             'init_s': np.array([100., 150.]),
+             'exp_s': np.array([900., 150.]),
+             'v0': 100,
+             'vmax': 130,
+             'init_v': np.array([100., 0.]),
+             'tau': 0.5,
+             'V_obs': 100.,
+             'R_obs': 500.,
+             'sight_angle': np.pi / 2, 
+             'sight_const': 0.5,
+             'friend': np.array([]),
+             'V_others': np.array([]),
+             'R_others': np.array([]),
+             'dist_obs_func': dist_obstacle,
+             'pid': 0
+             }
+    sim_env.add_object('ped', param)
+
+    param = {
+             'init_s': np.array([100., 200.]),
+             'exp_s': np.array([900., 200.]),
+             'v0': 100,
+             'vmax': 130,
+             'init_v': np.array([100., 0.]),
+             'tau': 0.5,
+             'V_obs': 100.,
+             'R_obs': 500.,
+             'sight_angle': np.pi / 2, 
+             'sight_const': 0.5,
+             'friend': np.array([True]),
+             'V_others': np.array([100.]),
+             'R_others': np.array([50.]),
+             'dist_obs_func': dist_obstacle,
+             'pid': 6
+             }
+    sim_env.add_object('ped', param)
+
+    param = {
+             'init_s': np.array([100., 250.]),
+             'exp_s': np.array([900., 250.]),
+             'v0': 100,
+             'vmax': 130,
+             'init_v': np.array([100., 0.]),
+             'tau': 0.5,
+             'V_obs': 100.,
+             'R_obs': 500.,
+             'sight_angle': np.pi / 2, 
+             'sight_const': 0.5,
+             'friend': np.array([False, True]),
+             'V_others': np.array([100., 100.]),
+             'R_others': np.array([50., 50.]),
+             'dist_obs_func': dist_obstacle,
+             'pid': 4
+             }
+    sim_env.add_object('ped', param)
+    sim_env.run()
+
+
+def test4():
+    """
+    test auto terminates the file
+    """
+    print "################TEST4##################"
+    print "test4 test of custom auto terminate the file \n\
+            test of variables testing\n\
+            test of clock tick function and reset screen function"
+    screen_size = (800, 600)
+    sim_env = sim.Sim('Pedestrian Simulation', screen_size)
+    """
+    adding obstacles
+    """
+    param = {
+             'start': np.array([100,100]), 
+             'end': np.array([700,100])
+             }
+    sim_env.add_object('obs', param)
+
+    param = {
+             'start': np.array([100,500]), 
+             'end': np.array([700,500])
+             }
+    sim_env.add_object('obs', param)
+
+    """
+    adding pedestrians
+    """
+    def dist_obstacle(s):
+        """
+        calculate the closest vector distant from the ped to obstacle
+        Input:
+            s: np.1darray; the location of the pedestrian
+        """
+        if s[1] - 100 < 500 - s[1]:
+            return np.array([0., s[1] - 100.])
+        if s[1] - 100 > 500 - s[1]:
+            return np.array([0., s[1] - 500.])
+        return np.array([100000, 100000])
+
+    param = {
+             'init_s': np.array([100., 150.]),
+             'exp_s': np.array([700., 150.]),
+             'v0': 100,
+             'vmax': 130,
+             'init_v': np.array([100., 0.]),
+             'tau': 0.5,
+             'V_obs': 20000.,
+             'R_obs': 500.,
+             'sight_angle': np.pi / 2, 
+             'sight_const': 0.5,
+             'friend': np.array([]),
+             'V_others': np.array([]),
+             'R_others': np.array([]),
+             'dist_obs_func': dist_obstacle,
+             'pid': 0
+             }
+    sim_env.add_object('ped', param)
+
+    param = {
+             'init_s': np.array([100., 200.]),
+             'exp_s': np.array([700., 200.]),
+             'v0': 100,
+             'vmax': 130,
+             'init_v': np.array([100., 0.]),
+             'tau': 0.5,
+             'V_obs': 20000.,
+             'R_obs': 500.,
+             'sight_angle': np.pi / 2, 
+             'sight_const': 0.5,
+             'friend': np.array([True]),
+             'V_others': np.array([10000.]),
+             'R_others': np.array([30.]),
+             'dist_obs_func': dist_obstacle,
+             'pid': 6
+             }
+    sim_env.add_object('ped', param)
+
+
+    def is_arrival(ped, sim_env):
+        """
+        check if the pedestrian has accomplish his/her tasks
+        Input:
+            ped: Ped; the pedestrian we want to check
+            sim_env: Sim; the simulation environment
+        Return:
+            is_arrival: boolean; is the pedestrian arrives its destination
+        """
+        time_step = sim_env.TDIFF
+        vmax = ped.vmax
+        exp_s = ped.exp_s
+        s = ped.s
+
+        if np.linalg.norm(s - exp_s) < time_step * vmax * 5:
+            return True
+        else:
+            return False
+
+
+    running = True
+    while running:
+        sim_env.clock_tick()
+        sim_env.reset_screen()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+        for ped in sim_env.pedestrians:
+            if is_arrival(ped, sim_env):
+                pid = ped.pid
+                sim_env.remove_pedestrians([pid])
+        if len(sim_env.pedestrians) == 0:
+            running = False
+
+        sim_env.move()
+        sim_env.display()
+        pygame.display.flip()
+
+
+#test1()
+#test2()
+#test3()
+test4()
 
