@@ -1,0 +1,9 @@
+pygame_env
+social_lstm/*txt
+social_lstm/save_v1
+social_lstm/social_model.ckpt-4000*
+social_lstm/social_model.ckpt-4400*
+social_lstm/social_model.ckpt-4800*
+social_lstm/social_model.ckpt-5200*
+social_lstm/results
+social_lstm/*.pyc
