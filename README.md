@@ -49,3 +49,20 @@ problem by adding noise.
   5.It can't model the best path since it weighted average all sampled paths. If there are two optimal path, it will get there average 
 , which is often much worse than optimal path. This can be solved by not using weighted average.  
 
+##Social-LSTM
+####Introduction
+This is the implementation of [Alahi et al., 2016](http://vision.stanford.edu/pdf/CVPR16_N_LSTM.pdf) and is modified from [Anirudh Vemula work](https://github.com/vvanirudh/social-lstm-tf). A simulation tool is built based on the prediction ability over pedstrians of social lstm.
+####Issue
+1. since social-lstm is trained with non-consecutive data(data may not come from exactly continuous frames), interpolation may be carried out across two consecutive prediction. In my implementation, linear interpolation is used.
+2. since social-lstm is a short-period prediction model, it is constructed as a simulation tool by making prediction based on its own previous prediction. This may cause error propagate and accumulate throughout entire simulated trajectory, and this is why sometimes pedestrians keep accerlerating, particularly obvious in the late lifetime of existing pedestrians.
+  
+##Navigation map
+###Version 1
+####Introduction
+This code can create predefined navigation map that indicates inherent properties of environment, for now including,
+1. places that are not allowed to be steped on, simulating, e.g. furniture, buildings
+2. places that pedestrian always walk along certain directions(8 different directions, including north, east, south, west, north-east, north-west, south-east, south-west)
+Besides, those map is further discretized into patches of size defined by hand. This is done to avoid heavy load of computation and redundant information using per-pixel navigation map. You can use mouse click, drag and entering text to create a navigation map.
+####Issue
+1. population is not modelled since, from my current knowledge, population and other kinds of statistics are data-driven. However, even if we sample data from a dataset to create those statistics, this may drastically constrain the creation of a navigation map.
+2. In indoor scene, there are often some places where people stay for a while, e.g. stove in the kitchen, and this can be modelled without data and defined simply by hand according to deployment of objects in a scene.
