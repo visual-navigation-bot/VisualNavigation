@@ -7,3 +7,7 @@ social_lstm/social_model.ckpt-4800*
 social_lstm/social_model.ckpt-5200*
 social_lstm/results
 social_lstm/*.pyc
+
+navigation_map/ver1/*.pyc
+navigation_map/ver1/*_bk*
+navigation_map/ver1/*.pkl
