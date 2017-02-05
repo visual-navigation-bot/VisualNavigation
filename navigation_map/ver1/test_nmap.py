@@ -6,13 +6,16 @@ from navigation_map import NavigationMap
 nmap_conf = {
     'width': 600,
     'height': 400,
-    'patch_size': 110
+    'patch_size': 10
 }
 nmap_save_path = './test1.pkl'
 nmap_restore_path = './test1.pkl'
 
 nmap = NavigationMap(nmap_conf)
+nmap.restore(nmap_restore_path)
 nmap.edit()
-print(nmap.dir_map)
-nmap.visualize()
+#nmap.visualize()
+
+nmap.create_energy_map(verbose=True)
+nmap.visualize_energy_map()
 #nmap.save(nmap_save_path)

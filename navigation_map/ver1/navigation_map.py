@@ -6,6 +6,9 @@ import numpy as np
 import pickle
 import os
 import math
+from scipy import signal
+import scipy
+import matplotlib.pyplot as plt
 
 # follows BGR (opencv style)
 BLACK = (0,0,0)
@@ -24,6 +27,27 @@ def search_dict_key(dict_in, val_in):
     for k, v in dict_in.items():
         if v==val_in:
             return k
+
+def gkern1(kernlen=21, nsig=3):
+    """Returns a 2D Gaussian kernel array. Method 1"""
+    interval = (2*nsig+1.)/(kernlen)
+    x = np.linspace(-nsig-interval/2., nsig+interval/2., kernlen+1) 
+    kern1d = np.diff(scipy.stats.norm.cdf(x))
+    kernel_raw = np.sqrt(np.outer(kern1d, kern1d))
+    kernel = kernel_raw/kernel_raw.sum()
+    
+    return kernel
+
+def gkern2(kernlen=21, nsig=3):
+    """Returns a 2D Gaussian kernel array. Method 2"""
+    # create nxn zeros
+    inp = np.zeros((kernlen, kernlen))
+    # set element at the middle to one, a dirac delta
+    inp[kernlen//2, kernlen//2] = 1
+    # gaussian-smooth the dirac, resulting in a gaussian filter mask
+    kernel =  scipy.ndimage.filters.gaussian_filter(inp, nsig)
+
+    return kernel
 
 class NavigationMap(object):
     def __init__(self, nmap_conf):
@@ -84,16 +108,20 @@ class NavigationMap(object):
         self._ix = 0
         self._iy = 0
 
+        self._energy_map = None
+    
     def visualize(self):
         cv2.namedWindow('navigation map visualization', cv2.WINDOW_NORMAL)
         cv2.imshow('navigation map visualization', self._vis_dmap)
         cv2.waitKey(0)
+        cv2.destroyWindow('navigation map visualization')
 
     def edit(self):
         '''
         FUNC: edit navigation map using mouse click and command line input
         '''
         print('Start editing mode:')
+        print('    Right click and drag / Left double click')
         print('    press \'h\' to get help message')
         print('    press \'l\' to get color-direction correspondence')
         print('    press \'p\' to print out current label')
@@ -138,6 +166,7 @@ class NavigationMap(object):
             if key & 0xFF == ord('h'):
                 # print help message
                 print('')
+                print('    Right click and drag / Left double click')
                 print('press \'h\' to get help message')
                 print('press \'l\' to get color-direction correspondence')
                 print('press \'p\' to print out current label')
@@ -213,7 +242,44 @@ class NavigationMap(object):
         self._patch_W = int(self._width/self._patch_size) + 1
         self._vis_dmap = self._dmap2vis(data['dir_map'])
         self._drawn_dmap = self._vis_dmap.copy()
-        
+       
+    def visualize_energy_map(self):
+        if self._energy_map is not None:
+            emap_c = np.uint8(self._energy_map*255)
+            emap_c = cv2.applyColorMap(emap_c, cv2.COLORMAP_JET)
+            cv2.namedWindow('Energy Map', cv2.WINDOW_NORMAL)
+            cv2.imshow('Energy Map', emap_c)
+            cv2.waitKey(0)
+            cv2.destroyWindow('Energy Map')
+        else:
+            raise ValueError('energy map is not created yet')
+
+    def create_energy_map(self, verbose=False):
+        na_map = self._dir_map==self._dmap_dict['not_allowed']
+        self._energy_map = np.zeros((self._height,self._width), dtype=np.float32)
+        psz = self._patch_size
+        for i in range(self._patch_H):
+            for j in range(self._patch_W):
+                self._energy_map[i*psz:(i+1)*psz, j*psz:(j+1)*psz] = float(na_map[i,j])
+
+        #####################################
+        ##        inf-or-0 method          ##
+        #####################################
+        #self._energy_map = self._energy_map * 1e5
+
+        #####################################
+        ##        convolution method       ##
+        #####################################
+        f = gkern2(51,15)
+        if verbose:
+            fc = cv2.applyColorMap(np.uint8(f/np.amax(f)*255), cv2.COLORMAP_JET)
+            cv2.namedWindow('filter', cv2.WINDOW_NORMAL)
+            cv2.imshow('filter',fc)
+            cv2.waitKey(0)
+            cv2.destroyWindow('filter')
+
+        self._energy_map = signal.convolve2d(self._energy_map,f,mode='same')
+
     def _onmouse(self, event, x, y, flags, param):
         '''
         FUNC: mouse callback function (opencv style)
@@ -267,4 +333,6 @@ class NavigationMap(object):
     @property
     def dir_map(self):
         return self._dir_map
-
+    @property
+    def energy_map(self):
+        return self._energy_map
