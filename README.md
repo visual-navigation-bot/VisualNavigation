@@ -63,6 +63,10 @@ This code can create predefined navigation map that indicates inherent propertie
 1. places that are not allowed to be steped on, simulating, e.g. furniture, buildings
 2. places that pedestrian always walk along certain directions(8 different directions, including north, east, south, west, north-east, north-west, south-east, south-west)
 Besides, those map is further discretized into patches of size defined by hand. This is done to avoid heavy load of computation and redundant information using per-pixel navigation map. You can use mouse click, drag and entering text to create a navigation map.
+
+<p align="center"><img src="index/emap.jpg" width="200"/></p>
+- visualization of energy map (uint8 for display, actual value range from 0. to 1.)
+
 ####Issue
 1. population is not modelled since, from my current knowledge, population and other kinds of statistics are data-driven. However, even if we sample data from a dataset to create those statistics, this may drastically constrain the creation of a navigation map.
 2. In indoor scene, there are often some places where people stay for a while, e.g. stove in the kitchen, and this can be modelled without data and defined simply by hand according to deployment of objects in a scene.
