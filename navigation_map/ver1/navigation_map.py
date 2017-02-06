@@ -280,6 +280,10 @@ class NavigationMap(object):
 
         self._energy_map = signal.convolve2d(self._energy_map,f,mode='same')
 
+    def get_energy_map(self):
+        return self._energy_map
+
+
     def _onmouse(self, event, x, y, flags, param):
         '''
         FUNC: mouse callback function (opencv style)
