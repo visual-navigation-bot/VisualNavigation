@@ -4,13 +4,13 @@ import pygame
 import time
 
 
-def test1(debug_mode = 0): 
+def test1(debug_mode = []): 
     print "#################TEST1################"
     print "# Add remove and calculate cross pedestrian value function test"
     print "######################################"
-    sim_env = simulation.Simulation_Environment((800, 600), 'Test1', 50)
+    sim = simulation.LTA((800, 600), 50)
     # set it to debug mode
-    sim_env.set_debug_mode(debug_mode)
+    sim.set_debug_mode(debug_mode)
 
     parameters = {
             'ID' : 7,
@@ -26,8 +26,7 @@ def test1(debug_mode = 0):
             'initial_velocity': np.array([5., 0.]),
             'initial_position': np.array([100., 100.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
     print "#########################"
     print "test1-1: one object, test calculate cross pedestrian value function"
@@ -38,7 +37,7 @@ def test1(debug_mode = 0):
     print "pedestrian relative position: [[[0.  0.]]"
     print "all pedestrian velocity: [[5.  0.]]"
     print ""
-    sim_env.calculate_cross_pedestrian_value()
+    sim._calculate_cross_pedestrian_value()
 
     parameters = {
             'ID' : 4,
@@ -54,8 +53,7 @@ def test1(debug_mode = 0):
             'initial_velocity': np.array([3.4, 0.]),
             'initial_position': np.array([80., 140.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
     print "#########################"
     print "test1-2: two object, test calculate cross pedestrian value function"
@@ -67,7 +65,7 @@ def test1(debug_mode = 0):
     print "    ", np.array([[[0., 0.],[20., -40.]],[[-20., 40.],[0., 0.]]])
     print "all pedestrian velocity: [[5.  0.], [3.4  0.]]"
     print ""
-    sim_env.calculate_cross_pedestrian_value()
+    sim._calculate_cross_pedestrian_value()
     
 
     parameters = {
@@ -84,8 +82,7 @@ def test1(debug_mode = 0):
             'initial_velocity': np.array([3.4, 1.]),
             'initial_position': np.array([90., 190.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
     print "#########################"
     print "test1-3: three object, test calculate cross pedestrian value function"
@@ -97,10 +94,10 @@ def test1(debug_mode = 0):
     print "    ", np.array([[[0., 0.],[20., -40.],[10., -90.]],[[-20., 40.],[0., 0.],[-10., -50.]],[[-10.,90.],[10.,50.],[0.,0.]]])
     print "all pedestrian velocity: [[5.  0.], [3.4  0.], [3.4  1.]]"
     print ""
-    sim_env.calculate_cross_pedestrian_value()
+    sim._calculate_cross_pedestrian_value()
 
 
-    sim_env.remove_pedestrian([4])
+    sim._remove_pedestrian(4)
     print "#########################"
     print "test1-4: two object, test remove objects"
     print ""
@@ -111,10 +108,10 @@ def test1(debug_mode = 0):
     print "    ", np.array([[[0., 0.],[10., -90.]],[[-10.,90.],[0.,0.]]])
     print "all pedestrian velocity: [[5.  0.], [3.4  1.]]"
     print ""
-    sim_env.calculate_cross_pedestrian_value()
+    sim._calculate_cross_pedestrian_value()
 
     
-    sim_env.remove_pedestrian([7])
+    sim._remove_pedestrian(7)
     print "#########################"
     print "test1-5: one object, test remove objects" 
     print ""
@@ -124,7 +121,7 @@ def test1(debug_mode = 0):
     print "pedestrian relative position: [[[0.  0.]]"
     print "all pedestrian velocity: [[3.4  1.]]"
     print ""
-    sim_env.calculate_cross_pedestrian_value()
+    sim._calculate_cross_pedestrian_value()
 
     parameters = {
             'ID' : 5,
@@ -140,11 +137,11 @@ def test1(debug_mode = 0):
             'initial_velocity': np.array([3., 0.]),
             'initial_position': np.array([10., 10.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
 
-    sim_env.remove_pedestrian([5, 3])
+    sim._remove_pedestrian(5)
+    sim._remove_pedestrian(3)
     print "#########################"
     print "test1-6: no object, test remove multiple objects"
     print ""
@@ -154,41 +151,41 @@ def test1(debug_mode = 0):
     print "pedestrian relative position: [[]]"
     print "all pedestrian velocity: [[]]"
     print ""
-    sim_env.calculate_cross_pedestrian_value()
+    sim._calculate_cross_pedestrian_value()
 
 # test RMSprop by using few simple functions
 # test minimize_energy_velocity function
 # test 3 imple test for run, move and display function
 
-def brute_force_calculate_energy(pedestrian, simulation_environment, velocity, debug_mode):
+def brute_force_calculate_energy(ped, sim, velocity, debug_mode):
     # brute force calculate energy by for loops
     # return I, S, D separately
-    l1 = pedestrian.lambda1
-    l2 = pedestrian.lambda2
-    alpha = pedestrian.alpha
-    beta = pedestrian.beta
-    sd = pedestrian.sigma_d
-    sw = pedestrian.sigma_w
-    p2m = pedestrian.pixel2meters
-    ID = pedestrian.ID
-    index = simulation_environment.pedestrian_ID2index[ID]
+    l1 = ped.lambda1
+    l2 = ped.lambda2
+    alpha = ped.alpha
+    beta = ped.beta
+    sd = ped.sigma_d
+    sw = ped.sigma_w
+    p2m = ped.pixel2meters
+    ID = ped.ID
+    index = np.where(sim.ped_ID == ID)[0][0]
 
-    vt = pedestrian.velocity * p2m
-    p = pedestrian.position * p2m
-    z = pedestrian.goal_position * p2m
-    u = pedestrian.expected_speed * p2m
+    vt = ped.velocity * p2m
+    p = ped.position * p2m
+    z = ped.goal_position * p2m
+    u = ped.expected_speed * p2m
     v = velocity *p2m
 
     S = l1 * (u - np.linalg.norm(v)) ** 2
     D = - l2 * np.dot((z-p), v) / (np.linalg.norm(v) * np.linalg.norm(z-p))
-    ped_count = len(simulation_environment.pedestrian_list)
+    ped_count = len(sim.ped_list)
     E_sum = 0.
 
-    if debug_mode:
+    if 2 in debug_mode:
         print "#########current ped index: ", index
     for i in range(ped_count):
         if i != index:
-            ped2 = simulation_environment.pedestrian_list[i]
+            ped2 = sim.ped_list[i]
             p2 = ped2.position * p2m
             v2 = ped2.velocity * p2m
             k = p - p2
@@ -202,7 +199,7 @@ def brute_force_calculate_energy(pedestrian, simulation_environment, velocity, d
             wphi = ((1 + cos) / 2)**beta
             E_sum += E * wd * wphi
 
-            if debug_mode:
+            if 2 in debug_mode:
                 print "-----------------------"
                 print "social energy to pedestrian index ", i
                 print "wd: ", wd
@@ -219,19 +216,16 @@ def brute_force_calculate_energy(pedestrian, simulation_environment, velocity, d
         print "total energy E: ", I + S + D
     return I, S, D
 
-def brute_force_energy_gradient(pedestrian, simulation_environment, velocity, debug_mode):
+def brute_force_energy_gradient(ped, sim, velocity, debug_mode):
     # brute force calculate energy gradient
     # return gradient I, S and D
-    ped = pedestrian
-    sim_env = simulation_environment
-    
     dv = 0.00001
     vchangex = np.array([velocity[0] + dv, velocity[1]])
     vchangey = np.array([velocity[0], velocity[1] + dv])
 
-    E = brute_force_calculate_energy(ped, sim_env, velocity, False)
-    Echangex = brute_force_calculate_energy(ped, sim_env, vchangex, False)
-    Echangey = brute_force_calculate_energy(ped, sim_env, vchangey, False)
+    E = brute_force_calculate_energy(ped, sim, velocity, debug_mode)
+    Echangex = brute_force_calculate_energy(ped, sim, vchangex, debug_mode)
+    Echangey = brute_force_calculate_energy(ped, sim, vchangey, debug_mode)
     gIx = (Echangex[0] - E[0]) / dv
     gIy = (Echangey[0] - E[0]) / dv
 
@@ -245,7 +239,7 @@ def brute_force_energy_gradient(pedestrian, simulation_environment, velocity, de
     gS = np.array([gSx, gSy])
     gD = np.array([gDx, gDy])
     
-    if debug_mode:
+    if 2 in debug_mode:
         print "gI: ", gI
         print "gS: ", gS
         print "gD: ", gD
@@ -254,15 +248,15 @@ def brute_force_energy_gradient(pedestrian, simulation_environment, velocity, de
 
 
 
-def test2(debug_mode = 0):
+def test2(debug_mode = []):
     print "#################TEST2################"
     print "# ENERGY FUNCTION TEST: "
     print "# BRUTE FORCE SHOULD EQUAL TO VECTORIZED RESULT"
     print "######################################"
 
-    sim_env = simulation.Simulation_Environment((800, 600), 'Test2', 50)
+    sim = simulation.LTA((800, 600), 50)
     # set it to debug mode
-    sim_env.set_debug_mode(debug_mode)
+    sim.set_debug_mode(debug_mode)
 
     parameters = {
             'ID' : 0,
@@ -278,8 +272,7 @@ def test2(debug_mode = 0):
             'initial_velocity': np.array([5.1, 0.]),
             'initial_position': np.array([103., 99.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
     parameters = {
             'ID' : 1,
@@ -295,8 +288,7 @@ def test2(debug_mode = 0):
             'initial_velocity': np.array([4.5, 0.1]),
             'initial_position': np.array([124., 102.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
     parameters = {
             'ID' : 2,
@@ -312,8 +304,7 @@ def test2(debug_mode = 0):
             'initial_velocity': np.array([3.0, 2.9]),
             'initial_position': np.array([101., 110.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
     parameters = {
             'ID' : 3,
@@ -329,20 +320,19 @@ def test2(debug_mode = 0):
             'initial_velocity': np.array([2.0, 4.1]),
             'initial_position': np.array([96., 94.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
-    sim_env.calculate_cross_pedestrian_value()
+    sim._calculate_cross_pedestrian_value()
 
     print "##############################"
     print "# FOUR PEDESTRIANS "
     print "##############################"
 
-    for ped in sim_env.pedestrian_list:
+    for ped in sim.ped_list:
         velocity = np.array([5.5, 0.])
         print "Energy Test for Pedestrian ", ped.ID
         print "\nBRUTE FORCE CALCULATE ENERGY"
-        I, S, D = brute_force_calculate_energy(ped, sim_env, velocity, debug_mode!=0)
+        I, S, D = brute_force_calculate_energy(ped, sim, velocity, debug_mode)
         print "E: ", I+S+D
         print "\nVECTORIZE CALCULATE ENERGY"
         E, gE = ped._energy_with_gradient(velocity)
@@ -350,17 +340,17 @@ def test2(debug_mode = 0):
         print "========================="
         print ""
 
-    sim_env.remove_pedestrian([1])
-    sim_env.calculate_cross_pedestrian_value()
+    sim._remove_pedestrian(1)
+    sim._calculate_cross_pedestrian_value()
 
     print "##############################"
     print "# THREE PEDESTRIANS "
     print "##############################"
-    for ped in sim_env.pedestrian_list:
+    for ped in sim.ped_list:
         velocity = np.array([5.5, 0.])
         print "Energy Test for Pedestrian ", ped.ID
         print "\nBRUTE FORCE CALCULATE ENERGY"
-        I, S, D = brute_force_calculate_energy(ped, sim_env, velocity, debug_mode!=0)
+        I, S, D = brute_force_calculate_energy(ped, sim, velocity, debug_mode)
         print "E: ", I+S+D
         print "\nVECTORIZE CALCULATE ENERGY"
         E, gE = ped._energy_with_gradient(velocity)
@@ -368,18 +358,19 @@ def test2(debug_mode = 0):
         print "========================="
         print ""
 
-    sim_env.remove_pedestrian([2, 0])
-    sim_env.calculate_cross_pedestrian_value()
+    sim._remove_pedestrian(2)
+    sim._remove_pedestrian(0)
+    sim._calculate_cross_pedestrian_value()
 
     print "##############################"
     print "# ONE PEDESTRIAN "
     print "##############################"
 
-    for ped in sim_env.pedestrian_list:
+    for ped in sim.ped_list:
         velocity = np.array([5.5, 0.])
         print "Energy Test for Pedestrian ", ped.ID
         print "\nBRUTE FORCE CALCULATE ENERGY"
-        I, S, D = brute_force_calculate_energy(ped, sim_env, velocity, debug_mode!=0)
+        I, S, D = brute_force_calculate_energy(ped, sim, velocity, debug_mode)
         print "E: ", I+S+D
         print "\nVECTORIZE CALCULATE ENERGY"
         E, gE = ped._energy_with_gradient(velocity)
@@ -388,15 +379,15 @@ def test2(debug_mode = 0):
         print ""
 
 
-def test3(debug_mode = 0):
+def test3(debug_mode = []):
     print "#################TEST3################"
     print "# GRADIENT ENERGY FUNCTION TEST: "
     print "# BRUTE FORCE SHOULD EQUAL TO VECTORIZED RESULT"
     print "######################################"
 
-    sim_env = simulation.Simulation_Environment((800, 600), 'Test3', 50)
+    sim = simulation.LTA((800, 600), 50)
     # set it to debug mode
-    sim_env.set_debug_mode(debug_mode)
+    sim.set_debug_mode(debug_mode)
 
     parameters = {
             'ID' : 0,
@@ -412,8 +403,7 @@ def test3(debug_mode = 0):
             'initial_velocity': np.array([5.1, 0.]),
             'initial_position': np.array([103., 99.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
     parameters = {
             'ID' : 1,
@@ -429,8 +419,7 @@ def test3(debug_mode = 0):
             'initial_velocity': np.array([4.5, 0.1]),
             'initial_position': np.array([124., 102.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
     parameters = {
             'ID' : 2,
@@ -446,8 +435,7 @@ def test3(debug_mode = 0):
             'initial_velocity': np.array([3.0, 2.9]),
             'initial_position': np.array([101., 110.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
     parameters = {
             'ID' : 3,
@@ -463,18 +451,17 @@ def test3(debug_mode = 0):
             'initial_velocity': np.array([2.0, 4.1]),
             'initial_position': np.array([96., 94.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
-    sim_env.calculate_cross_pedestrian_value()
+    sim.add_ped(parameters)
+    sim._calculate_cross_pedestrian_value()
 
     print "##############################"
     print "# FOUR PEDESTRIANS "
     print "##############################"
-    for ped in sim_env.pedestrian_list:
+    for ped in sim.ped_list:
         velocity = np.array([5.5, 0.])
         print "Energy Test for Pedestrian ", ped.ID
         print "\nBRUTE FORCE CALCULATE ENERGY GRADIENT"
-        gI, gS, gD = brute_force_energy_gradient(ped, sim_env, velocity, debug_mode!=0)
+        gI, gS, gD = brute_force_energy_gradient(ped, sim, velocity, debug_mode)
         print "gE: ", gI + gS + gD
         print "\nVECTORIZE CALCULATE ENERGY GRADIENT"
         E, gE = ped._energy_with_gradient(velocity)
@@ -482,17 +469,17 @@ def test3(debug_mode = 0):
         print "========================="
         print ""
 
-    sim_env.remove_pedestrian([2])
-    sim_env.calculate_cross_pedestrian_value()
+    sim._remove_pedestrian(2)
+    sim._calculate_cross_pedestrian_value()
 
     print "##############################"
     print "# THREE PEDESTRIANS "
     print "##############################"
-    for ped in sim_env.pedestrian_list:
+    for ped in sim.ped_list:
         velocity = np.array([5.5, 0.])
         print "Energy Test for Pedestrian ", ped.ID
         print "\nBRUTE FORCE CALCULATE ENERGY GRADIENT"
-        gI, gS, gD = brute_force_energy_gradient(ped, sim_env, velocity, debug_mode!=0)
+        gI, gS, gD = brute_force_energy_gradient(ped, sim, velocity, debug_mode)
         print "gE: ", gI + gS + gD
         print "\nVECTORIZE CALCULATE ENERGY GRADIENT"
         E, gE = ped._energy_with_gradient(velocity)
@@ -500,17 +487,18 @@ def test3(debug_mode = 0):
         print "========================="
         print ""
 
-    sim_env.remove_pedestrian([0, 1])
-    sim_env.calculate_cross_pedestrian_value()
+    sim._remove_pedestrian(0)
+    sim._remove_pedestrian(1)
+    sim._calculate_cross_pedestrian_value()
 
     print "##############################"
     print "# ONE PEDESTRIAN "
     print "##############################"
-    for ped in sim_env.pedestrian_list:
+    for ped in sim.ped_list:
         velocity = np.array([5.5, 0.])
         print "Energy Test for Pedestrian ", ped.ID
         print "\nBRUTE FORCE CALCULATE ENERGY GRADIENT"
-        gI, gS, gD = brute_force_energy_gradient(ped, sim_env, velocity, debug_mode!=0)
+        gI, gS, gD = brute_force_energy_gradient(ped, sim, velocity, debug_mode)
         print "gE: ", gI + gS + gD
         print "\nVECTORIZE CALCULATE ENERGY GRADIENT"
         E, gE = ped._energy_with_gradient(velocity)
@@ -547,13 +535,13 @@ def test4():
     print "steps:", len(energy_list)
 
 
-def test5(debug_mode = 0):
+def test5(debug_mode = []):
     print "#################TEST5################"
     print "# RMSpop MINIMIZE ENERGY TEST"
     print "######################################"
 
-    sim_env = simulation.Simulation_Environment((800, 600), 'Test5', 2.5)
-    sim_env.set_debug_mode(debug_mode)
+    sim = simulation.LTA((800, 600), 2.5)
+    sim.set_debug_mode(debug_mode)
     parameters = {
             'ID' : 0,
             'lambda1' : 2.33,
@@ -568,8 +556,7 @@ def test5(debug_mode = 0):
             'initial_velocity': np.array([5.1, 0.]),
             'initial_position': np.array([103., 99.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
     parameters = {
             'ID' : 1,
@@ -585,8 +572,7 @@ def test5(debug_mode = 0):
             'initial_velocity': np.array([- 4.5, 0.1]),
             'initial_position': np.array([109., 98.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
     parameters = {
             'ID' : 2,
@@ -602,8 +588,7 @@ def test5(debug_mode = 0):
             'initial_velocity': np.array([3.0, 2.9]),
             'initial_position': np.array([101., 110.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
+    sim.add_ped(parameters)
 
     parameters = {
             'ID' : 3,
@@ -619,85 +604,53 @@ def test5(debug_mode = 0):
             'initial_velocity': np.array([2.0, 4.1]),
             'initial_position': np.array([96., 94.])
                 }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
-    sim_env.calculate_cross_pedestrian_value()
+    sim.add_ped(parameters)
+    sim._calculate_cross_pedestrian_value()
     
     print "##############################"
     print "# FOUR PEDESTRIANS "
     print "##############################"
-    for ped in sim_env.pedestrian_list:
+    for ped in sim.ped_list:
         print "optimal velocity for Pedestrian ", ped.ID
         optimal_velocity = ped._minimize_energy_velocity()
         print optimal_velocity
         print "========================"
         print ""
 
-    sim_env.remove_pedestrian([1])
-    sim_env.calculate_cross_pedestrian_value()
+    sim._remove_pedestrian(1)
+    sim._calculate_cross_pedestrian_value()
     
     print "##############################"
     print "# THREE PEDESTRIANS "
     print "##############################"
-    for ped in sim_env.pedestrian_list:
+    for ped in sim.ped_list:
         print "optimal velocity for Pedestrian ", ped.ID
         optimal_velocity = ped._minimize_energy_velocity()
         print optimal_velocity
         print "========================"
         print ""
 
-    sim_env.remove_pedestrian([0, 3])
-    sim_env.calculate_cross_pedestrian_value()
+    sim._remove_pedestrian(0)
+    sim._remove_pedestrian(3)
+    sim._calculate_cross_pedestrian_value()
     
     print "##############################"
     print "# ONE PEDESTRIAN "
     print "##############################"
-    for ped in sim_env.pedestrian_list:
+    for ped in sim.ped_list:
         print "optimal velocity for Pedestrian ", ped.ID
         optimal_velocity = ped._minimize_energy_velocity()
         print "optimal velocity: ", optimal_velocity
         print "========================"
         print ""
 
-def test6(debug_mode = 0):
-    print "#################TEST6################"
-    print "# SIMPLE RUN CASE"
-    print "######################################"
-
-    sim_env = simulation.Simulation_Environment((800, 600), 'Test6', 2.5)
-    sim_env.set_debug_mode(debug_mode)
-    parameters = {
-            'ID' : 0,
-            'lambda1' : 2.33,
-            'lambda2' : 2.073,
-            'sigma_d' : 0.361,
-            'sigma_w' : 2.088,
-            'beta' : 1.462,
-            'alpha' : 0.730,
-            'pixel2meters' : 0.02,
-            'expected_speed': 65.,
-            'goal_position': np.array([505., 101.]),
-            'initial_velocity': np.array([0.1, 0.]),
-            'initial_position': np.array([103., 99.])
-                }
-    ped = simulation.Pedestrian(parameters, sim_env)
-    sim_env.add_pedestrian(ped)
-
-    sim_env.run()
-
-# test 3 imple test for run, move and display function
-
-
-
 # debug mode: 
-# 0 --> display nothing
 # 1 --> display cross pedestrian value
 # 2 --> display energy calculation detail
 # 3 --> display minimize energy process
 
-#test1(1) #test1()
-#test2() #test2(2)
-#test3() #test3(2)
+#test1([1]) #test1()
+#test2([2]) #test2()
+#test3([2]) #test3()
 #test4()
-test5(3) #test5() 
-#test6()
+test5([3]) #test5() 

@@ -1,140 +1,39 @@
-import pygame
 import numpy as np
 import random
 import time
 
-class Simulation_Environment:
+class LTA:
     """
-    The simple simulation environment containing only pedestrians
-    If want to include any other objects, please write another class
-    based on this class
+    LTA Simulation Class 
+    inherit by Simulation Class
     """
-    def __init__(self, screen_size, screen_name, frame_per_second):
+    def __init__(self, field_size, frame_per_second):
         """
         Input:
-            screen_size: (int, int); the size of screen
-            screen_name: string; the name of the screen
+            field_size: (float, float); the size of field;
             frame_per_second: float; diplayment frame per second
         """
-        self.screen_size = screen_size
-        self.screen_color = (255, 255, 255)
-        self.screen_name = screen_name
-        self.screen = pygame.display.set_mode(screen_size)
-        pygame.display.set_caption(screen_name)
-        self.screen.fill(self.screen_color)
+        self.field_size = field_size
 
-        self.clock = pygame.time.Clock()
-        self.pedestrian_list = []
+        self.ped_list = []
+        self.agent = None
         self.time_step = 1. / frame_per_second
         self.frame_per_second = frame_per_second
 
-        self.pedestrian_relative_position = np.array([[]])
-        self.all_pedestrian_velocity = np.array([[]])
-        self.pedestrian_ID2index = {}
-        self.debug_mode = 0
+        self.ped_relative_position = np.array([], dtype = np.float32).reshape((0,0,2))
+        self.all_ped_velocity = np.array([], dtype = np.float32).reshape((0,2))
+        self.ped_ID = np.array([], dtype = np.int8).reshape(0)
+        self.debug_mode = []
         # debug mode: 
-        # 0 --> display nothing
         # 1 --> display cross pedestrian value
         # 2 --> display energy calculation detail
         # 3 --> display minimize energy process
 
-    def set_debug_mode(self, debug_mode):
-        # change the debug mode
-        self.debug_mode = debug_mode
-
-    def clock_tick(self):
-        # make clock tick a time step
-        self.clock.tick(self.frame_per_second)
-
-    def reset_screen(self):
-        # reset the screen to original format
-        self.screen.fill(self.screen_color)
-
-    def add_pedestrian(self, pedestrian):
-        # add a pedestrian to the environment
-        pedestrian_ID = pedestrian.ID
-        pedestrian_index = len(self.pedestrian_list)
-        self.pedestrian_ID2index[pedestrian_ID] = pedestrian_index
-        self.pedestrian_list.append(pedestrian)
-        
-
-    def remove_pedestrian(self, pedestrian_ID_list):
-        # remove a list of pedestrians from the environment by their IDs
-        for pedestrian_ID in pedestrian_ID_list:
-            pedestrian_index = self.pedestrian_ID2index[pedestrian_ID]
-            del self.pedestrian_list[pedestrian_index]
-            del self.pedestrian_ID2index[pedestrian_ID]
-            for ID, index in self.pedestrian_ID2index.items():
-                if index > pedestrian_index:
-                    self.pedestrian_ID2index[ID] = index - 1
-
-    def calculate_cross_pedestrian_value(self):
-        # calculate cross pedestrian value for move to use
-        # pedestrian_relative_position[i][j] = p[i] - p[j]
-        # all_pedestrian_velocity[i] = v[i]
-        pedestrian_count = len(self.pedestrian_list)
-        
-        if pedestrian_count != 0:
-            position = self.pedestrian_list[0].position
-            position_matrix = np.tile(position, (1, pedestrian_count, 1))
-            for pedestrian_index in range(1, pedestrian_count):
-                position = self.pedestrian_list[pedestrian_index].position
-                repeat_matrix = np.tile(position, (1, pedestrian_count, 1))
-                position_matrix = np.concatenate((position_matrix, repeat_matrix))
-            self.pedestrian_relative_position = position_matrix - np.swapaxes(position_matrix, 0, 1) 
-        else:
-            self.pedestrian_relative_position = np.array([[]])
-
-        if pedestrian_count != 0:
-            self.all_pedestrian_velocity = self.pedestrian_list[0].velocity[np.newaxis, :]
-            for pedestrian_index in range(1, pedestrian_count):
-                velocity = self.pedestrian_list[pedestrian_index].velocity
-                self.all_pedestrian_velocity = np.vstack((self.all_pedestrian_velocity, velocity))
-        else:
-            self.all_pedestrian_velocity = np.array([[]])
-
-        if self.debug_mode == 1:
-            print "pedestrian count: ", len(self.pedestrian_list)
-            print "pedestrian ID to index:"
-            for key, value in self.pedestrian_ID2index.items():
-                print "     ID: ", key, "; index: ", value
-            print "pedestrian relative position: [i][j] = p[i] - p[j]: "
-            print "    ", self.pedestrian_relative_position
-            print "all pedestrian velocity: \n    ", self.all_pedestrian_velocity
-            print ""
-
-
-    def display(self):
-        # display all objects on the screen without flipping
-        for pedestrian in self.pedestrian_list:
-            pedestrian.display()
-
-    def move(self):
-        # move all objects to the next step it should be virtually
-        for pedestrian in self.pedestrian_list:
-            pedestrian.move()
-
-    def run(self):
-        # simply run the simulation
-        running = True
-        while running:
-            self.screen.fill(self.screen_color)
-            self.clock.tick(self.frame_per_second)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-            self.calculate_cross_pedestrian_value()
-            self.move()
-            self.display()
-            pygame.display.flip()
-
-
-class Pedestrian:
-    def __init__(self, parameters, simulation_environment):
+    def add_ped(self, ped_params):
         """
-        Pedestrian represent the simulated pedestrian in the simulation environment
+        Add a pedestrian to the Simulation
         Input:
-            parameters: dictionary; all the useful parameters while setup the pedestrian
+            ped_params: dictionary; all the useful parameters while setup the pedestrian
                 ID: int; the ID of this pedestrian
                 lambda1: float; lambda1 in energy equation
                 lambda2: float; lambda2 in energy equation
@@ -147,29 +46,146 @@ class Pedestrian:
                 goal_position: np.1darray; the goal position in pixel
                 initial_velocity: np.1darray; the initial velocity in pixel/s
                 initial_position: np.1darray; the initial position in pixel
-            simulation_environment: Simulation_Environment; the simulation environment
+        """
+        ped = Pedestrian(ped_params, self)
+        ped_ID = ped.ID
+        self.ped_ID = np.hstack((self.ped_ID, ped_ID))
+        self.ped_list.append(ped)
+
+    def move(self):
+        """
+        move all pedestrian except agent for one time step
+        remove any pedestrian that is out of the field or arrive destination
+        """
+        self._calculate_cross_pedestrian_value() # speed up by numpy
+        for ped in self.ped_list:
+            if ped.ID != -1:
+                ped.move()
+
+    def get_ped_state(self):
+        """
+        Return the state and ID of the pedestrians, don't return agent's information
+        Input:
+            None
+        Return:
+            ped_state: dictionary;
+                ped_ID: numpy1darray int8; the pedestrian ID
+                ped_position: numpy2darray float32; the pedestrian position
+                ped_velocity: numpy2darray float32; the pedestrian velocity
+        """
+        ped_state = {}
+        ped_position = np.array([], dtype = np.float32).reshape((0,2))
+        ped_velocity = np.array([], dtype = np.float32).reshape((0,2))
+        ped_ID = np.array([], dtype = np.int8).reshape(0)
+        for ped in self.ped_list:
+            if ped.ID != -1:
+                # if it is not agent
+                ped_velocity = np.vstack((ped_velocity, ped.velocity))
+                ped_position = np.vstack((ped_position, ped.position))
+                ped_ID = np.hstack((ped_ID, ped.ID))
+        ped_state['ped_ID'] = ped_ID
+        ped_state['ped_position'] = ped_position
+        ped_state['ped_velocity'] = ped_velocity
+        return ped_state
+
+    def add_agent(self, agent):
+        """
+        Add the agent in the Simulation
+        Input:
+            agent: Agent (defined by environment class); the agent
+        Note:
+            agent class have propertis: ID = -1, velocity, position
+        """
+        self.agent = agent
+        assert agent.ID == -1, "Error: agent's ID is not -1"
+        self.ped_ID = np.hstack((self.ped_ID, agent.ID))
+        self.ped_list.append(agent)
+
+
+
+    def set_debug_mode(self, debug_mode = []):
+        # change the debug mode
+        self.debug_mode = debug_mode
+
+    def _remove_pedestrian(self, ped_ID):
+        # remove a list of pedestrians from the environment by their IDs
+        ped_index = np.argwhere(self.ped_ID == ped_ID)[0][0]
+        del self.ped_list[ped_index]
+        self.ped_ID = np.delete(self.ped_ID, ped_index, 0)
+        if ped_ID == -1:
+            print "Agent removed!"
+
+    def _calculate_cross_pedestrian_value(self):
+        # calculate cross pedestrian value for move to use
+        # pedestrian_relative_position[i][j] = p[i] - p[j]
+        # all_pedestrian_velocity[i] = v[i]
+        ped_count = len(self.ped_list)
+
+
+        position_matrix = np.array([], dtype = np.float32).reshape((0,ped_count,2))
+        for ped_index in range(ped_count):
+            position = self.ped_list[ped_index].position
+            repeat_matrix = np.tile(position, (1, ped_count, 1))
+            position_matrix = np.concatenate((position_matrix, repeat_matrix))
+        self.ped_relative_position = position_matrix - np.swapaxes(position_matrix, 0, 1) 
+
+        self.all_ped_velocity = np.array([], dtype = np.float32).reshape((0,2))
+        for ped_index in range(ped_count):
+            velocity = self.ped_list[ped_index].velocity
+            self.all_ped_velocity = np.vstack((self.all_ped_velocity, velocity))
+
+        if 1 in self.debug_mode:
+            print "pedestrian count: ", len(self.ped_list)
+            print "pedestrian ID to index:"
+            for ped_index in range(len(self.ped_list)):
+                ped_ID = self.ped_ID[ped_index]
+                print "     ID: ", ped_ID, "; index: ", ped_index
+
+            print "pedestrian relative position: [i][j] = p[i] - p[j]: "
+            print "    ", self.ped_relative_position
+            print "all pedestrian velocity: \n    ", self.all_ped_velocity
+            print ""
+
+class Pedestrian:
+    def __init__(self, params, sim):
+        """
+        Pedestrian represent the simulated pedestrian in the simulation environment
+        Input:
+            params: dictionary; all the useful parameters while setup the pedestrian
+                ID: int; the ID of this pedestrian
+                lambda1: float; lambda1 in energy equation
+                lambda2: float; lambda2 in energy equation
+                sigma_d: float; sigma_d in energy equation
+                sigma_w: float; sigma_w in energy equation
+                beta: float; beta in energy equation
+                alpha: float; alpha to update position
+                pixel2meters: float; 1 pixel on screen represents this much meters in real world
+                expected_speed: float; the expected speed in pixel/s
+                goal_position: np.1darray; the goal position in pixel
+                initial_velocity: np.1darray; the initial velocity in pixel/s
+                initial_position: np.1darray; the initial position in pixel
+            sim: Simulation; the simulation environment
                                     that contains this pedestrian
         """
-        self.simulation_environment = simulation_environment
-        self.screen = simulation_environment.screen
-        self.frame_per_second = simulation_environment.frame_per_second
-        self.time_step = simulation_environment.time_step
-        self.debug_mode = simulation_environment.debug_mode
+        self.sim = sim
+        self.frame_per_second = sim.frame_per_second
+        self.time_step = sim.time_step
+        self.debug_mode = sim.debug_mode
 
-        self.ID = parameters['ID']
-        self.lambda1 = parameters['lambda1']
-        self.lambda2 = parameters['lambda2']
-        self.sigma_d = parameters['sigma_d']
-        self.sigma_w = parameters['sigma_w']
-        self.beta = parameters['beta']
-        self.alpha = parameters['alpha']
-        self.pixel2meters = parameters['pixel2meters']
+        self.ID = params['ID']
+        self.lambda1 = params['lambda1']
+        self.lambda2 = params['lambda2']
+        self.sigma_d = params['sigma_d']
+        self.sigma_w = params['sigma_w']
+        self.beta = params['beta']
+        self.alpha = params['alpha']
+        self.pixel2meters = params['pixel2meters']
         self.meter2pixels = 1. / self.pixel2meters
         
-        self.expected_speed = parameters['expected_speed']
-        self.goal_position = parameters['goal_position']
-        self.velocity = parameters['initial_velocity']
-        self.position = parameters['initial_position']
+        self.expected_speed = params['expected_speed']
+        self.goal_position = params['goal_position']
+        self.velocity = params['initial_velocity']
+        self.position = params['initial_position']
         
 
     def _minimize_energy_velocity(self):
@@ -179,17 +195,17 @@ class Pedestrian:
             velocity: np.1darray; the velocity that minimize the energy, in pixel/s
         """
         time_start = time.time()
-        parameters = {}
-        parameters['gamma'] = 0.99
-        parameters['alpha'] = 0.5 #0.001
-        parameters['epsilon'] = 10**(-4)
+        params = {}
+        params['gamma'] = 0.99
+        params['alpha'] = 0.5 #0.001
+        params['epsilon'] = 10**(-4)
 
         initial_velocity = self.velocity
         energy_list, minimize_energy_velocity = RMSprop(
-                initial_velocity, self._energy_with_gradient, parameters)
+                initial_velocity, self._energy_with_gradient, params)
         time_end = time.time()
 
-        if self.debug_mode == 3:
+        if 3 in self.debug_mode:
             print "energy decay process in RMSprop: "
             for energy in energy_list:
                 print energy
@@ -211,7 +227,7 @@ class Pedestrian:
             energy: float; given this velocity, the energy for this pedestrian
             energy_gradient: np.2darray; the gradient of energy to the velocity
         """
-        sim_env = self.simulation_environment
+        sim = self.sim
         v = self.pixel2meters * velocity
         vt = self.pixel2meters * self.velocity #last time step velocity
         u = self.pixel2meters * self.expected_speed
@@ -252,16 +268,16 @@ class Pedestrian:
         # d = k - kdotq * q / |q|**2
         # wr = exp(-k ** 2 / (2 * sw**2)) * ( (1+cos(phi)) / 2)**beta
         ID = self.ID
-        index = sim_env.pedestrian_ID2index[ID]
-        ped_count = len(sim_env.pedestrian_list)
+        index = np.argwhere(sim.ped_ID == ID)[0][0]
+        ped_count = len(sim.ped_list)
 
         gvi2pixel = np.array([0., 0.])
         E_i = 0.
 
         if ped_count != 1:
             # if there is more than one pedestrian, calculate social energy
-            k = np.delete(sim_env.pedestrian_relative_position[index], index, axis = 0) * p2m # relative position 
-            q = np.tile(v, (ped_count - 1, 1)) - np.delete(sim_env.all_pedestrian_velocity, index, axis = 0) * p2m
+            k = np.delete(sim.ped_relative_position[index], index, axis = 0) * p2m # relative position 
+            q = np.tile(v, (ped_count - 1, 1)) - np.delete(sim.all_ped_velocity, index, axis = 0) * p2m
 
             kdotq = np.sum(k * q, axis = 1) 
             normq = np.linalg.norm(q, axis = 1) 
@@ -290,7 +306,7 @@ class Pedestrian:
             gvi = np.sum(gq, axis = 0)
             gvi2pixel = gvi * p2m
 
-            if self.debug_mode == 2:
+            if 2 in self.debug_mode:
                 print "##########current pedestrian index: ", index
                 print "wd: ", wd
                 print "wphi: ", wphi
@@ -307,7 +323,7 @@ class Pedestrian:
                 print "gS: ", gvs2pixel
                 print "gD: ", gvd2pixel
         else:
-            if self.debug_mode == 2:
+            if 2 in self.debug_mode:
                 print "##########current pedestrian index: ", index
                 print "Speed energy S: ", E_s
                 print "direction energy D: ", E_d
@@ -325,11 +341,6 @@ class Pedestrian:
         self.position += (self.alpha * self.velocity + (1 - self.alpha) * 
                 optimal_velocity) * self.time_step
         self.velocity = optimal_velocity
-        return
-
-    def display(self):
-        # display the pedestrian on the screen before flipping
-        pygame.draw.circle(self.screen, (0,0,0), (int(self.position[0]), int(self.position[1])), 3, 0)
         return
 
 def RMSprop(initial_value, energy_and_gradient_function, parameters):

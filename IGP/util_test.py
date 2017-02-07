@@ -395,8 +395,8 @@ def test5(debug_mode = []):
 #test1()
 #test2()
 #test3([1])
-#test4([2])
-test5([3])
+test4([2])
+#test5([3])
 # debug mode = 1: assertion in gaussian process class
 # debug mode = 2: assertion in two dimension gaussian process class
 
