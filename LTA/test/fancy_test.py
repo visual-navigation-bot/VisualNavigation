@@ -145,5 +145,3 @@ def test2(debug_mode):
 
 
 
-#test1() #test1(3)
-test2(3) #test2(3)

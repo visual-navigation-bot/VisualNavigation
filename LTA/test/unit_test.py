@@ -1,6 +1,5 @@
 import simulation
 import numpy as np
-import pygame
 import time
 
 
@@ -649,8 +648,3 @@ def test5(debug_mode = []):
 # 2 --> display energy calculation detail
 # 3 --> display minimize energy process
 
-#test1([1]) #test1()
-#test2([2]) #test2()
-#test3([2]) #test3()
-#test4()
-test5([3]) #test5() 
