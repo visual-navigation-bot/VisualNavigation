@@ -1,6 +1,7 @@
 # a subclass of Action_Space for discrete action space
 
 from base_action_space import Action_Space
+import random
 
 class Discrete_Action_Space(Action_Space):
     def __init__(self, n_act):
@@ -13,6 +14,10 @@ class Discrete_Action_Space(Action_Space):
         Action_Space.__init__(self)
         self._n_act = n_act
         self._range = range(n_act) 
+
+    def sample(self):
+        action = random.sample(self._range, 1)[0]
+        return action
 
     @property
     def range(self):
