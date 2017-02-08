@@ -47,7 +47,26 @@ class Agent:
         """
         Move the agent as the action by step time
         """
+        self._velocity += action * self._step_time
+        self._position += self._velocity * self._step_time
 
+    def get_agent_state(self):
+        """
+        Return the state of the agent
+        Return:
+            agent_state: dictionary;
+                agent_ID: -1
+                agent_position: np1darray; position of agent
+                agent_velocity: np1darray; velocity of agent
+                agent_goal_position: np1darray; goal position of agent
+        """
+        agent_state = {
+                'agent_ID': -1,
+                'agent_position': self._position,
+                'agent_velocity': self._velocity,
+                'agent_goal_position': self._goal_position
+                }
+        return agent_state
 
     def reset(self):
         """
@@ -55,14 +74,14 @@ class Agent:
         No Input and Return value
         """
         if self._initial_velocity is None:
-            self._random_initialize_position()
+            self._random_initialize_velocity()
         else:
-            self._position = self._initial_position
+            self._velocity = self._initial_velocity
 
         if self._initial_position is None:
             self._random_initialize_position()
         else:
-            self._velocity = self._initial_velocity
+            self._position = self._initial_position
 
         if self._default_goal_position is None:
             self._random_set_goal_position()
@@ -93,7 +112,7 @@ class Agent:
         self._velocity = np.array([random.random(), random.random()]) * expected_speed
 
     def _random_set_goal_position(self):
-        self._position = np.array(
+        self._goal_position = np.array(
                 [random.uniform(0, self._field_size[0]), random.uniform(0, self._field_size[1])]
                 )
 
