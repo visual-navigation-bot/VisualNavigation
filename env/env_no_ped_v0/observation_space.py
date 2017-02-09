@@ -3,7 +3,7 @@
 from base_observation_space import Observation_Space
 
 class Obs_Space_No_Ped_v0(Observation_Space):
-    def __init__(self):
+    def __init__(self, field_size):
         self._field_size = field_size
 
     def field_size(self):

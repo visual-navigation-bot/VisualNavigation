@@ -9,6 +9,7 @@ import math
 from scipy import signal
 import scipy
 import matplotlib.pyplot as plt
+import scipy.misc as misc
 
 # follows BGR (opencv style)
 BLACK = (0,0,0)
@@ -238,8 +239,8 @@ class Navigation_Map_v0(object):
         self._dir_map = data['dir_map']
         self._dmap_dict = data['dmap_dict']
 
-        self._patch_H = int(self._height/self._patch_size) + 1
-        self._patch_W = int(self._width/self._patch_size) + 1
+        self._patch_H = int(math.ceil(self._height/self._patch_size))
+        self._patch_W = int(math.ceil(self._width/self._patch_size))
         self._vis_dmap = self._dmap2vis(data['dir_map'])
         self._drawn_dmap = self._vis_dmap.copy()
        
@@ -251,6 +252,26 @@ class Navigation_Map_v0(object):
             cv2.imshow('Energy Map', emap_c)
             cv2.waitKey(0)
             cv2.destroyWindow('Energy Map')
+        else:
+            raise ValueError('energy map is not created yet')
+
+    def save_bg_nmap(self, fname):
+        if self._energy_map is not None:
+            emap_c = np.uint8(self._energy_map*255)
+            emap_c = cv2.applyColorMap(emap_c, cv2.COLORMAP_JET)
+            emap_c = emap_c[:,:,::-1]
+            fname_img = os.path.abspath(os.path.expanduser(fname+'.jpg'))
+            misc.imsave(fname_img, emap_c)
+            # convert from bgr to rgb
+            background = self._vis_dmap[:,:,::-1]
+            # save
+            data = {
+                'navigation_map': self._energy_map,
+                'background': background
+            }
+            fname_pkl = os.path.abspath(os.path.expanduser(fname+'.pkl'))
+            with open(fname_pkl, 'wb') as f:
+                pickle.dump(data,f)
         else:
             raise ValueError('energy map is not created yet')
 
@@ -270,7 +291,7 @@ class Navigation_Map_v0(object):
         #####################################
         ##        convolution method       ##
         #####################################
-        f = gkern2(51,15)
+        f = gkern2(10,3)
         if verbose:
             fc = cv2.applyColorMap(np.uint8(f/np.amax(f)*255), cv2.COLORMAP_JET)
             cv2.namedWindow('filter', cv2.WINDOW_NORMAL)
@@ -278,7 +299,7 @@ class Navigation_Map_v0(object):
             cv2.waitKey(0)
             cv2.destroyWindow('filter')
 
-        self._energy_map = signal.convolve2d(self._energy_map,f,mode='same')
+        self._energy_map = scipy.ndimage.filters.convolve(self._energy_map,f,mode='constant',cval=1.)
 
     def _onmouse(self, event, x, y, flags, param):
         '''
