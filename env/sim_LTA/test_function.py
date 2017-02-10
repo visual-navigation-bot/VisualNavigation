@@ -1,4 +1,5 @@
 import simulation
+import pygame
 import numpy as np
 import time
 
@@ -642,6 +643,7 @@ def test5(debug_mode = []):
         print "optimal velocity: ", optimal_velocity
         print "========================"
         print ""
+
 
 # debug mode: 
 # 1 --> display cross pedestrian value

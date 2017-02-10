@@ -18,30 +18,13 @@ class Agent:
         self._initial_velocity = None
         self._initial_position = None
         self._default_goal_position = None
+        self._default_expected_speed = None
 
         self._position = None
         self._velocity = None
+        self._expected_speed = None
         self._goal_position = None
         self._ID = -1
-        
-    def get_agent_state(self):
-        """
-        Return the state of agent
-        Input:
-            None
-        Return:
-            params: dictionary;
-                position: np1darray; the position of agent
-                velocity: np1darray; the velocity of agent
-                goal_position: np1darray; the goal position of agent
-                ID: int; the ID of agent, should be -1
-        """
-        params = {}
-        params['position'] = self._position
-        params['velocity'] = self._velocity
-        params['goal_position'] = self._goal_position
-        params['ID'] = self._ID
-        return params
 
     def move(self, action):
         """
@@ -88,7 +71,12 @@ class Agent:
         else:
             self._goal_position = self._default_goal_position
 
-    def set_params(self, params):
+        if self._default_expected_speed is None:
+            self._random_set_expected_speed()
+        else:
+            self._expected_speed = self._default_expected_speed
+
+    def set_params(self, params = {}):
         """
         set initial conditions
         Input:
@@ -96,10 +84,39 @@ class Agent:
                 initial_position: np1darray; initial position of agent
                 initial_velocity: np1darray; initial velocity of agent
                 default_goal_position: np1darray; goal position of agent
+                default_expected_speed: float; expected speed of agent
         """
-        self._initial_velocity = params['initial_velocity']
-        self._initial_position = params['initial_position']
-        self._default_goal_position = params['default_goal_position']
+        if 'initial_velocity' in params:
+            self._initial_velocity = params['initial_velocity']
+        if 'initial_position' in params:
+            self._initial_position = params['initial_position']
+        if 'default_goal_position' in params:
+            self._default_goal_position = params['default_goal_position']
+        if 'default_expected_speed' in params:
+            self._default_expected_speed = params['default_expected_speed']
+
+    def is_done(self):
+        """
+        Return:
+            done: bool; if the agent arrived its destination
+        """
+        return np.linalg.norm(self._position - self._goal_position) < 10
+
+    def reward(self, reward_params):
+        """
+        Return the reward of the agent, get by its expected speed not reached
+        Input: 
+            reward_params: dictionary;
+                pixel2meters: float; one pixel is how many meters
+                lambda1: float;
+        Return:
+            reward: float;
+        """
+        p2m = reward_params['pixel2meters']
+        l1 = reward_params['lambda1']
+        speed_diff = self._expected_speed - np.linalg.norm(self._velocity)
+        return l1 * (p2m * speed_diff)**2
+
 
 
     def _random_initialize_position(self):
@@ -109,7 +126,11 @@ class Agent:
 
     def _random_initialize_velocity(self):
         expected_speed = random.uniform(40., 80.)
-        self._velocity = np.array([random.random(), random.random()]) * expected_speed
+        direction = random.uniform(0, 2 * np.pi)
+        self._velocity = np.array([np.cos(direction), np.sin(direction)]) * expected_speed
+
+    def _random_set_expected_speed(self):
+        self._expected_speed = random.uniform(40., 80.)
 
     def _random_set_goal_position(self):
         self._goal_position = np.array(
@@ -131,3 +152,7 @@ class Agent:
     @property
     def ID(self):
         return self._ID
+
+    @property
+    def expected_speed(self):
+        return self._expected_speed

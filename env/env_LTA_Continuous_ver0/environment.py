@@ -45,14 +45,20 @@ class LTA_Continuous_ver0(Environment):
         self._sim = LTA(field_size, self._frame_per_second)
         self._next_ID = 0
 
+        self._time_penalty_hyperparameter = 0.5
         self._max_ped_count = 40
         self._init_ped_count = 20
+        self._add_ped_freq = 4.
         self._rolling = True
         self._pixel2meters = 0.02
         self._expected_speed_sample_func = self._default_expected_speed_sample_func
         self._destination_sample_func = self._default_destination_sample_func
         self._initial_velocity_sample_func = self._default_initial_velocity_sample_func
         self._initial_position_sample_func = self._default_initial_position_sample_func
+        self._new_velocity_sample_func = self._default_new_velocity_sample_func
+        self._new_position_sample_func = self._default_new_position_sample_func
+        self._new_destination_sample_func = self._default_destination_sample_func
+        self._new_expected_speed_sample_func = self._default_expected_speed_sample_func
         self._ped_params = {
                 'lambda1' : 2.33,
                 'lambda2' : 2.073,
@@ -64,7 +70,11 @@ class LTA_Continuous_ver0(Environment):
                 'expected_speed_generater': self._expected_speed_sample_func,
                 'goal_position_generater': self._destination_sample_func,
                 'initial_velocity_generater': self._initial_velocity_sample_func,
-                'initial_position_generater': self._initial_position_sample_func
+                'initial_position_generater': self._initial_position_sample_func,
+                'new_position_generater': self._new_position_sample_func,
+                'new_velocity_generater': self._new_velocity_sample_func,
+                'new_goal_position_generater': self._new_destination_sample_func,
+                'new_expected_speed_generater': self._new_expected_speed_sample_func
                 }
 
         self._action_space = Continuous_Action_Space(np.array([-1000.,-1000.]), np.array([1000.,1000.]))
@@ -72,7 +82,7 @@ class LTA_Continuous_ver0(Environment):
 
     def _default_destination_sample_func(self):
         """
-        Default function to sample destination position
+        Default function to sample destination position for initial pedestrians
         """
         destination = None
         try:
@@ -96,13 +106,13 @@ class LTA_Continuous_ver0(Environment):
 
     def _default_expected_speed_sample_func(self):
         """
-        Default function to sample expected speed
+        Default function to sample expected speed for initial pedestrians
         """
         return random.uniform(40, 80)
 
     def _default_initial_velocity_sample_func(self):
         """
-        Default function to sample initial velocity
+        Default function to sample initial velocity for initial pedestrians
         """
         initial_speed = random.gauss(60, 20)
         initial_theta = random.uniform(0, np.pi * 2)
@@ -111,7 +121,7 @@ class LTA_Continuous_ver0(Environment):
 
     def _default_initial_position_sample_func(self):
         """
-        Default function to sample initial position
+        Default function to sample initial position for initial pedestrians
         """
         ped_position_list = self._sim.get_ped_state()['ped_position']
         initial_position = None
@@ -125,6 +135,29 @@ class LTA_Continuous_ver0(Environment):
             for ped_index in range(ped_position_list.shape[0]):
                 if np.linalg.norm(initial_position - ped_position_list[ped_index]) < 10:
                     allowed = False
+        return initial_position
+
+    def _default_new_velocity_sample_func(self):
+        """
+        Default function to sample initial velocity for new added pedestrians
+        """
+        return self._default_initial_velocity_sample_func()
+
+    def _default_new_position_sample_func(self):
+        """
+        Default function to sample initial position for new added pedestrians
+        """
+        source = random.choice(['up','down', 'left','right'])
+        initial_position = np.array([random.uniform(0, self._screen_size[0]), 
+            random.uniform(0, self._screen_size[1])])
+        if source == 'up':
+            initial_position[1] = random.uniform(-100, 0)
+        if source == 'down':
+            initial_position[1] = random.uniform(0, 100) + self._screen_size[1]
+        if source == 'left':
+            initial_position[0] = random.uniform(-100, 0)
+        if source == 'right':
+            initial_position[0] = random.uniform(0, 100) + self._screen_size[0]
         return initial_position
 
     def reset(self):
@@ -193,6 +226,26 @@ class LTA_Continuous_ver0(Environment):
         if not (lt_maximum and gt_minimum):
             raise ValueError("action is not in range")
 
+        # add new ped if conditioned satisfied
+        if random.random() < 1./(self._add_ped_freq + 1e-10) and self._rolling:
+            if self._max_ped_count > self._sim.get_ped_count():
+                params = {}
+                params['ID'] = self._next_ID
+                params['lambda1'] = self._ped_params['lambda1']
+                params['lambda2'] = self._ped_params['lambda2']
+                params['sigma_d'] = self._ped_params['sigma_d']
+                params['sigma_w'] = self._ped_params['sigma_w']
+                params['beta'] = self._ped_params['beta']
+                params['alpha'] = self._ped_params['alpha']
+                params['pixel2meters'] = self._ped_params['pixel2meters']
+                params['expected_speed'] = self._ped_params['new_expected_speed_generater']()
+                params['goal_position'] = self._ped_params['new_goal_position_generater']()
+                params['initial_velocity'] = self._ped_params['new_velocity_generater']()
+                params['initial_position'] = self._ped_params['new_position_generater']()
+                
+                self._next_ID += 1
+                self._sim.add_ped(params)
+
         # move the pedestrians first
         self._sim.move()
         self._agent.move(action)
@@ -201,20 +254,20 @@ class LTA_Continuous_ver0(Environment):
         state = ped_state.copy()
         state.update(agent_state)
         reward = self._reward(state)
-        done = np.linalg.norm(self._agent.position - self._agent.goal_position) < 10
+        done = self._agent.is_done()
         obs = state # fully observable
         
         if self._display_environment:
             #self._clock.tick(self._frame_per_second)
+            self._display(ped_state)
+            pygame.display.flip()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self._display_environment = False
                     pygame.display.quit()
-                    pygame.quit()
                     sys.exit()
+                    break
                     
-            self._display(ped_state)
-            pygame.display.flip()
         if done:
             pygame.display.quit()
             pygame.quit()
@@ -223,6 +276,9 @@ class LTA_Continuous_ver0(Environment):
     def _reward(self, state):
         """
         The reward for the environment in current situation
+        The reward of state of pedestrian itself +
+        The penalty of the distance between pedestrians +
+        The time penalty
         Input:
             state: dictionary;
                 agent_ID: -1
@@ -235,7 +291,41 @@ class LTA_Continuous_ver0(Environment):
         Return:
             reward: float;
         """
-        return -1
+        l1 = self._ped_params['lambda1']
+        l2 = self._ped_params['lambda2']
+        sd = self._ped_params['sigma_d']
+        sw = self._ped_params['sigma_w']
+        beta = self._ped_params['beta']
+        alpha = self._ped_params['alpha']
+        p2m = self._ped_params['pixel2meters']
+        
+        ped_velocity = state['ped_velocity']
+        ped_position = state['ped_position']
+        v = state['agent_velocity'] * p2m
+        p = state['agent_position'] * p2m
+
+        E_sum = 0
+        for i in range(len(ped_velocity)):
+            v2 = ped_velocity[i] * p2m
+            p2 = ped_position[i] * p2m
+            k = p - p2
+            q = v - v2
+            t = -np.dot(k, q) / np.linalg.norm(q) ** 2
+            d = k + q * max(t, 0)
+            dsquare = np.linalg.norm(d) ** 2
+            E = np.exp(-dsquare / (2 * sd ** 2))
+            wd = np.exp(-np.linalg.norm(k)**2 / (2 * sw**2))
+            cos = -np.dot(k, v) / (np.linalg.norm(k) * np.linalg.norm(v))
+            wphi = ((1 + cos) / 2)**beta
+            E_sum += E * wd * wphi
+
+        reward_params = {
+                'pixel2meters': p2m,
+                'lambda1': l1
+                }
+        E_sum += self._agent.reward(reward_params)
+        # 0.5 is the time penalty
+        return - E_sum - self._time_penalty_hyperparameter
 
     def display(self):
         """
@@ -245,7 +335,7 @@ class LTA_Continuous_ver0(Environment):
         self._screen_color = (255,255,255)
         pygame.display.set_caption('LTA_Continuous')
         self._screen.fill(self._screen_color)
-        self._clock = pygame.time.Clock()
+        #self._clock = pygame.time.Clock()
         self._display_environment = True
 
     def _display(self, ped_state):
@@ -294,9 +384,66 @@ class LTA_Continuous_ver0(Environment):
         set parameters, below parameters are available:
         Input:
             params: dictionary; can partially set
-                
+                agent_initial_position
+                agent_initial_velocity
+                agent_goal_position
+                agent_expected_speed
+                time_penalty_hyperparameter
+                max_ped_count
+                init_ped_count
+                add_ped_freq
+                rolling
+                pixel2meters
+                expected_speed_sample_func
+                destination_sample_func
+                initial_velocity_sample_func
+                initial_position_sample_func
+                new_velocity_sample_func
+                new_position_sample_func
+                new_destination_sample_func
+                new_expected_speed_sample_func
         """
-        return
+        # set agent parameters
+        agent_params = {}
+        if 'agent_initial_position' in params:
+            agent_params['initial_position'] = params['agent_initial_position']
+        if 'agent_initial_velocity' in params:
+            agent_params['initial_velocity'] = params['agent_initial_velocity']
+        if 'agent_goal_position' in params:
+            agent_params['default_goal_position'] = params['agent_goal_position']
+        if 'agent_expected_speed' in params:
+            agent_params['default_expected_speed'] = params['agent_expected_speed']
+        self._agent.set_params(agent_params)
+            
+        # set other parameters in the environment
+        if 'time_penalty_hyperparameter' in params:
+            self._time_penalty_hyperparameter = params['time_penalty_hyperparameter']
+        if 'max_ped_count' in params:
+            self._max_ped_count = params['max_ped_count']
+        if 'init_ped_count' in params:
+            self._init_ped_count = params['init_ped_count']
+        if 'add_ped_freq' in params:
+            self._add_ped_freq = params['add_ped_freq']
+        if 'rolling' in params:
+            self._rolling = params['rolling']
+        if 'pixel2meters' in params:
+            self._pixel2meters = params['pixel2meters']
+        if 'expected_speed_sample_func' in params:
+            self._ped_params['expected_speed_generater'] = params['expected_speed_sample_func']
+        if 'destination_sample_func' in params:
+            self._ped_params['goal_position_generater'] = params['destination_sample_func']
+        if 'initial_velocity_sample_func' in params:
+            self._ped_params['initial_velocity_generater'] = params['initial_velocity_sample_func']
+        if 'initial_position_sample_func' in params:
+            self._ped_params['initial_position_generater'] = params['initial_position_sample_func']
+        if 'new_velocity_sample_func' in params:
+            self._ped_params['new_velocity_generater'] = params['new_velocity_sample_func']
+        if 'new_position_sample_func' in params:
+            self._ped_params['new_position_generater'] = params['new_position_sample_func']
+        if 'new_destination_sample_func' in params:
+            self._ped_params['new_goal_position_generater'] = params['new_destination_sample_func']
+        if 'new_expected_speed_sample_func' in params:
+            self._ped_params['new_expected_speed_generater'] = params['new_expected_speed_sample_func']
 
     @property
     def action_space(self):

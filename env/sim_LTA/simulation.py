@@ -57,6 +57,15 @@ class LTA:
         move all pedestrian except agent for one time step
         remove any pedestrian that is out of the field or arrive destination
         """
+        for ped in self.ped_list:
+            if ped.ID == -1:
+                # agent
+                if self.agent.is_done():
+                    self.remove_pedestrian(-1)
+                    print "Agent removed!!!!!"
+            else:
+                if np.linalg.norm(ped.position - ped.goal_position) < 20:
+                    self._remove_pedestrian(ped.ID)
         self._calculate_cross_pedestrian_value() # speed up by numpy
         for ped in self.ped_list:
             if ped.ID != -1:
@@ -103,6 +112,15 @@ class LTA:
 
 
 
+    def get_ped_count(self):
+        """
+        Return the numbers of pedestrians
+        """
+        if self.agent is not None:
+            return len(self.ped_list) - 1
+        else:
+            return len(self.ped_list)
+
     def set_debug_mode(self, debug_mode = []):
         # change the debug mode
         self.debug_mode = debug_mode
@@ -112,8 +130,6 @@ class LTA:
         ped_index = np.argwhere(self.ped_ID == ped_ID)[0][0]
         del self.ped_list[ped_index]
         self.ped_ID = np.delete(self.ped_ID, ped_index, 0)
-        if ped_ID == -1:
-            print "Agent removed!"
 
     def _calculate_cross_pedestrian_value(self):
         # calculate cross pedestrian value for move to use
