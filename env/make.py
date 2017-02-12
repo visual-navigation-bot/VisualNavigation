@@ -1,6 +1,7 @@
 # environment
 from env_example.environment import Example
 import env_LTA_Continuous_ver0.example
+import env_LTA_Discrete_ver0.example
 
 # navigation map
 from nav_v0.navigation_map import Navigation_Map_v0
@@ -11,6 +12,9 @@ def make_environment(env_name, step_time=0.4, field_size=(800,600), params = {})
         return Example(step_time, field_size, x_start)
     elif env_name=='LTA_Continuous_ver0_Opposite_Walk':
         return env_LTA_Continuous_ver0.example.Opposite_Walk(
+               step_time, field_size, params)
+    elif env_name=='LTA_Discrete_ver0_Opposite_Walk':
+        return env_LTA_Discrete_ver0.example.Opposite_Walk(
                step_time, field_size, params)
     else:
         raise NotImplementedError('No such enviroment {} implmented'.format(env_name))
