@@ -208,6 +208,57 @@ def Opposite_Walk(step_time, field_size, ow_params = {}):
     return env
 
 
+def Two_Peds_Walk(step_time, field_size, ow_params = {}):
+
+    def expected_speed_sample_func():
+        return 50.
+
+    def destination_sample_func():
+        return np.array([100., 300.000001])
+
+    def initial_velocity_sample_func():
+        return np.array([-50., 0.])
+
+    def initial_position_sample_func():
+        return np.array([700., 300.])
+
+    print "==========LTA CONTINUOUS VER0 TWO PEDS WALK ENVIRONMENT==========="
+    fps = 1./step_time
+
+    agent_initial_position = np.array([100., 300.000001])
+    agent_initial_velocity = np.array([50., 0.])
+    agent_expected_speed = 50.
+    agent_goal_position = np.array([700., 300.])
+
+    time_penalty_hyperparameter = 0.0
+    max_ped_count = 1
+    init_ped_count = 1
+    add_ped_freq = 1
+    rolling = False
+    pixel2meters = 0.02
+
+    env_params = {
+            'agent_initial_position': agent_initial_position,
+            'agent_initial_velocity': agent_initial_velocity,
+            'agent_goal_position': agent_goal_position,
+            'agent_expected_speed': agent_expected_speed,
+            'time_penalty_hyperparameter': time_penalty_hyperparameter,
+            'max_ped_count': max_ped_count,
+            'init_ped_count': init_ped_count,
+            'add_ped_freq': add_ped_freq,
+            'rolling': rolling,
+            'pixel2meters': pixel2meters,
+            'expected_speed_sample_func': expected_speed_sample_func,
+            'destination_sample_func': destination_sample_func,
+            'initial_velocity_sample_func': initial_velocity_sample_func,
+            'initial_position_sample_func': initial_position_sample_func,
+            }
+
+    env = environment.LTA_Continuous_ver0(0.4, (800,600))
+    env.set_params(env_params)
+    env.set_params(ow_params)
+    return env
+
 
 
 

@@ -24,6 +24,7 @@ class LTA_Continuous_ver0(Environment):
         agent_position: np.1darray; the position of agent
         agent_velocity: np.1darray; the velocity of agent
         agent_goal_position: np.1darray; the goal position of agent
+        agent_expected_speed: float; the expected_speed of agent
         ped_ID: np.1darray int8; ID of other pedestrians
         ped_position: np.2darray float32; axis 0 is agent index, axis 1 is agent position
         ped_velocity: np.2darray float32; axis 0 is agent index, axis 1 is agent velocity
@@ -173,7 +174,9 @@ class LTA_Continuous_ver0(Environment):
                 ped_position: np.2darray float32; axis 0 is agent index, axis 1 is agent position
                 ped_velocity: np.2darray float32; axis 0 is agent index, axis 1 is agent velocity
         """
+        self._next_ID = 0
         self._agent.reset()
+        self._sim.reset()
         self._sim.add_agent(self._agent)
 
         for ped_index in range(self._init_ped_count):
@@ -271,6 +274,7 @@ class LTA_Continuous_ver0(Environment):
         if done:
             pygame.display.quit()
             pygame.quit()
+            self._display_environment = False
         return obs, reward, done
 
     def _reward(self, state):
@@ -331,6 +335,7 @@ class LTA_Continuous_ver0(Environment):
         """
         Set the function to display mode
         """
+        pygame.init()
         self._screen = pygame.display.set_mode(self._screen_size)
         self._screen_color = (255,255,255)
         pygame.display.set_caption('LTA_Continuous')

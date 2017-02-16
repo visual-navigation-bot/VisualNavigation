@@ -28,6 +28,15 @@ class LTA:
         # 1 --> display cross pedestrian value
         # 2 --> display energy calculation detail
         # 3 --> display minimize energy process
+    def reset(self):
+        self.ped_list = []
+        self.agent = None
+
+        self.ped_relative_position = np.array([], dtype = np.float32).reshape((0,0,2))
+        self.all_ped_velocity = np.array([], dtype = np.float32).reshape((0,2))
+        self.ped_ID = np.array([], dtype = np.int8).reshape(0)
+        self.debug_mode = []
+
 
     def add_ped(self, ped_params):
         """
@@ -61,7 +70,7 @@ class LTA:
             if ped.ID == -1:
                 # agent
                 if self.agent.is_done():
-                    self.remove_pedestrian(-1)
+                    self._remove_pedestrian(-1)
                     print "Agent removed!!!!!"
             else:
                 if np.linalg.norm(ped.position - ped.goal_position) < 20:
@@ -216,7 +225,7 @@ class Pedestrian:
         params['alpha'] = 0.5 #0.001
         params['epsilon'] = 10**(-4)
 
-        initial_velocity = self.velocity
+        initial_velocity = self.velocity + np.random.random((2)) * self.expected_speed / 20.
         energy_list, minimize_energy_velocity = RMSprop(
                 initial_velocity, self._energy_with_gradient, params)
         time_end = time.time()

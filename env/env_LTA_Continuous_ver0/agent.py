@@ -42,12 +42,14 @@ class Agent:
                 agent_position: np1darray; position of agent
                 agent_velocity: np1darray; velocity of agent
                 agent_goal_position: np1darray; goal position of agent
+                agent_expected_speed: float; expected speed of agent
         """
         agent_state = {
                 'agent_ID': -1,
                 'agent_position': self._position,
                 'agent_velocity': self._velocity,
-                'agent_goal_position': self._goal_position
+                'agent_goal_position': self._goal_position,
+                'agent_expected_speed': self._expected_speed
                 }
         return agent_state
 
@@ -59,17 +61,17 @@ class Agent:
         if self._initial_velocity is None:
             self._random_initialize_velocity()
         else:
-            self._velocity = self._initial_velocity
+            self._velocity = self._initial_velocity.copy()
 
         if self._initial_position is None:
             self._random_initialize_position()
         else:
-            self._position = self._initial_position
+            self._position = self._initial_position.copy()
 
         if self._default_goal_position is None:
             self._random_set_goal_position()
         else:
-            self._goal_position = self._default_goal_position
+            self._goal_position = self._default_goal_position.copy()
 
         if self._default_expected_speed is None:
             self._random_set_expected_speed()
