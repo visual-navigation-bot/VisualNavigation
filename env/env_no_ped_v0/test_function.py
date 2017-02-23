@@ -5,7 +5,7 @@ from environment import No_Ped_v0
 def test1():
     step_time = 0.8
     field_size = (300,300)
-    nav_path = '~/Desktop/VisualNavigation_local/env/env_no_ped_v0/nav_data/no_ped_v0_1.pkl'
+    nav_path = '~/Desktop/vslab/VisualNavigation/env/env_no_ped_v0/nav_data/no_ped_v0_1.pkl'
     max_eps_len = 100
     n_eps = 1000000
     fix_action = True

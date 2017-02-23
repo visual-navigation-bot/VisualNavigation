@@ -2,43 +2,49 @@ import numpy as np
 import random
 import time
 
-def LTA_Controller(observations):
-    """
-    LTA Controller Function
-    Designed for LTA Continuous Ver0 environments
-    Input:
-        observation: dictionary;
-            agent_ID: -1
-            agent_position: np.1darray; the position of agent
-            agent_velocity: np.1darray; the velocity of agent
-            agent_goal_position: np.1darray; the goal position of agent
-            agent_expected_speed: float; the expected speed of agent
-            ped_ID: np.1darray int8; ID of other pedestrians
-            ped_position: np.2darray float32; axis 0 is agent index, axis 1 is agent position
-            ped_velocity: np.2darray float32; axis 0 is agent index, axis 1 is agent velocity
-    Return:
-        action: np1darray; acceleration
-    """
-    position = observations['agent_position']
-    velocity = observations['agent_velocity']
-    goal_position = observations['agent_goal_position']
-    expected_speed = observations['agent_expected_speed']
+class LTA_Controller:
+    def __init__(self, params):
+        self.lambda1 = params['lambda1']
+        self.lambda2 = params['lambda2']
+        self.sigma_d = params['sigma_d']
+        self.sigma_w = params['sigma_w']
+        self.beta = params['beta']
+        self.step_time = params['step_time']
+        self.p2m = params['pixel2meters']
 
-    ped_ID = observations['ped_ID']
-    ped_position = observations['ped_position']
-    ped_velocity = observations['ped_velocity']
+        self.debug_mode = params['debug_mode']
 
-    lambda1 = 2.33
-    lambda2 = 2.073
-    sigma_d = 0.361
-    sigma_w = 2.088
-    beta = 1.462
-    step_time = 0.4
-    p2m = 0.02
+    def control(self, observation):
+        """
+        LTA Controller Function
+        Designed for LTA Continuous Ver0 environments
+        Input:
+            observation: dictionary;
+                agent_ID: -1
+                agent_position: np.1darray; the position of agent
+                agent_velocity: np.1darray; the velocity of agent
+                agent_goal_position: np.1darray; the goal position of agent
+                agent_expected_speed: float; the expected speed of agent
+                ped_ID: np.1darray int8; ID of other pedestrians
+                ped_position: np.2darray float32; axis 0 is agent index, axis 1 is agent position
+                ped_velocity: np.2darray float32; axis 0 is agent index, axis 1 is agent velocity
+        Return:
+            action: np1darray; acceleration
+        """
+        self.position = observation['agent_position']
+        self.velocity = observation['agent_velocity']
+        self.goal_position = observation['agent_goal_position']
+        self.expected_speed = observation['agent_expected_speed']
 
-    debug_mode = False
+        self.ped_ID = observation['ped_ID']
+        self.ped_position = observation['ped_position']
+        self.ped_velocity = observation['ped_velocity']
 
-    def _minimize_energy_velocity():
+        action = (self._minimize_energy_velocity() - self.velocity) / self.step_time
+
+        return action
+
+    def _minimize_energy_velocity(self):
         """
         calculate the velocity that minimize the energy by RMSprop
         Return:
@@ -50,12 +56,12 @@ def LTA_Controller(observations):
         params['alpha'] = 0.5 #0.001
         params['epsilon'] = 10**(-4)
 
-        initial_velocity = velocity.copy() + np.random.random((2)) * 2.5
+        initial_velocity = self.velocity.copy() + np.random.random((2)) * 2.5
         energy_list, minimize_energy_velocity = RMSprop(
-                initial_velocity, _energy_with_gradient, params)
+                initial_velocity, self._energy_with_gradient, params)
         time_end = time.time()
 
-        if debug_mode:
+        if self.debug_mode:
             print "energy decay process in RMSprop: "
             for energy in energy_list:
                 print energy
@@ -65,7 +71,7 @@ def LTA_Controller(observations):
 
         return minimize_energy_velocity
 
-    def _energy_with_gradient(next_v):
+    def _energy_with_gradient(self, next_v):
         """
         A function that calculates the energy and gradient of energy
         while given the velocity, the velocity is given
@@ -77,16 +83,16 @@ def LTA_Controller(observations):
             energy: float; given this velocity, the energy for this pedestrian
             energy_gradient: np.2darray; the gradient of energy to the velocity
         """
-        v = p2m * next_v
-        vt = p2m * velocity
-        u = p2m * expected_speed
-        l1 = lambda1
-        l2 = lambda2
-        sd = sigma_d
-        sw = sigma_w
-        b = beta
-        z = p2m * goal_position
-        p = p2m * position
+        v = self.p2m * next_v
+        vt = self.p2m * self.velocity
+        u = self.p2m * self.expected_speed
+        l1 = self.lambda1
+        l2 = self.lambda2
+        sd = self.sigma_d
+        sw = self.sigma_w
+        b = self.beta
+        z = self.p2m * self.goal_position
+        p = self.p2m * self.position
 
         # using back propogation in the following
         # E_s (speed) = lambda1 * (u - |v|)**2
@@ -95,7 +101,7 @@ def LTA_Controller(observations):
 
         gnormv = - 2 * l1 * (u - normv)
         gvs = gnormv * v / normv
-        gvs2pixel = gvs * p2m
+        gvs2pixel = gvs * self.p2m
 
         # E_d (direction) = - (p dot v) / (|p| * |v|)
         pdotv = np.dot((z - p), v)
@@ -108,14 +114,14 @@ def LTA_Controller(observations):
         gnormv = gnormpnormv * np.linalg.norm(z-p)
         gvd = gnormv * v / normv
         gvd += gpdotv * (z - p)
-        gvd2pixel = gvd * p2m
+        gvd2pixel = gvd * self.p2m
 
         # E_i = sigma(i)(wr(i) * exp(- d**2 / (2**sd**2)))
         # q = v - vj; k = pi - pj; cos(phi) = -kdotvt / (|k|*|vt|)
         # i is this pedestrian
         # d = k - kdotq * q / |q|**2
         # wr = exp(-k ** 2 / (2 * sw**2)) * ( (1+cos(phi)) / 2)**beta
-        ped_count = len(ped_ID)
+        ped_count = len(self.ped_ID)
 
         gvi2pixel = np.array([0., 0.])
         E_i = 0.
@@ -124,8 +130,8 @@ def LTA_Controller(observations):
             # if there is more than one pedestrian (including agent), calculate social energy
             # agent's position subtracted by other pedestrian's position
             # agent's velocity subtracted by other pedestrian's velocity
-            k = (position - ped_position) * p2m
-            q = (velocity - ped_velocity) * p2m
+            k = (self.position - self.ped_position) * self.p2m
+            q = (self.velocity - self.ped_velocity) * self.p2m
 
             kdotq = np.sum(k * q, axis = 1) 
             normq = np.linalg.norm(q, axis = 1) 
@@ -152,9 +158,9 @@ def LTA_Controller(observations):
             gkdotq = - gt / normq**2
             gq += gkdotq[:, np.newaxis] * k
             gvi = np.sum(gq, axis = 0)
-            gvi2pixel = gvi * p2m
+            gvi2pixel = gvi * self.p2m
 
-            if debug_mode:
+            if self.debug_mode:
                 print "wd: ", wd
                 print "wphi: ", wphi
                 print "k: ", k
@@ -170,7 +176,7 @@ def LTA_Controller(observations):
                 print "gS: ", gvs2pixel
                 print "gD: ", gvd2pixel
         else:
-            if debug_mode:
+            if self.debug_mode:
                 print "##########"
                 print "Speed energy S: ", E_s
                 print "direction energy D: ", E_d
@@ -181,12 +187,6 @@ def LTA_Controller(observations):
         energy = E_s + E_d + E_i 
         energy_gradient = gvs2pixel + gvd2pixel + gvi2pixel
         return (energy, energy_gradient)
-
-    action = (_minimize_energy_velocity() - velocity) / step_time
-
-    return action
-
-
 
 def RMSprop(initial_value, energy_and_gradient_function, parameters):
     """

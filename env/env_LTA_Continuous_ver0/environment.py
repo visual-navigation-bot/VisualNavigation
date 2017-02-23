@@ -272,9 +272,10 @@ class LTA_Continuous_ver0(Environment):
                     break
                     
         if done:
-            pygame.display.quit()
-            pygame.quit()
-            self._display_environment = False
+            if self._display_environment:
+                pygame.display.quit()
+                pygame.quit()
+                self._display_environment = False
         return obs, reward, done
 
     def _reward(self, state):

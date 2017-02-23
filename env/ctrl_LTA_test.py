@@ -16,16 +16,30 @@ def show_observation(observation):
         print ""
     print "#####################"
 
+
+params = {
+        'lambda1' : 2.33,
+        'lambda2' : 2.073,
+        'sigma_d' : 0.361,
+        'sigma_w' : 2.088,
+        'beta' : 1.462,
+        'pixel2meters' : 0.02,
+        'step_time': 0.4,
+        'debug_mode': False
+}
+controller = ctrl.LTA_Controller(params)
+
+
 env = make.make_environment('LTA_Continuous_ver0_Two_Peds_Walk')
-episode_count = 100
+episode_count = 2
 sum_reward = 0.
 for ep in range(episode_count):
-    #env.display()
+    env.display()
     obs = env.reset()
     done = False
     total_reward = 0.
     while not done:
-        action = ctrl.LTA_Controller(obs)
+        action = controller.control(obs)
         obs, reward, done = env.step(action)
         total_reward += reward
     print "total reward: ", total_reward
@@ -35,10 +49,10 @@ print "LTA Controller average reward: ", sum_reward / episode_count
 
 env = make.make_environment('LTA_Continuous_ver0_Two_Peds_Walk')
 action = np.array([0.,0.])
-episode_count = 100
+episode_count = 2
 sum_reward = 0.
 for ep in range(episode_count):
-    #env.display()
+    env.display()
     obs = env.reset()
     done = False
     total_reward = 0.
