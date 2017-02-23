@@ -87,15 +87,15 @@ def show_actions(actions):
         t += 1
 
 class Pedestrian_Base:
-    def __init__(self):
-        self._lambda1 = 2.33
-        self._lambda2 = 2.073
-        self._sigma_d = 0.361
-        self._sigma_w = 2.088
-        self._beta = 1.462
-        self._alpha = 0.73
-        self._expected_speed = 50.
-        self._goal_position = np.array([100., 300.000001])
+    def __init__(self, ped_params):
+        self._lambda1 = ped_params['lambda1']
+        self._lambda2 = ped_params['lambda2']
+        self._sigma_d = ped_params['sigma_d']
+        self._sigma_w = ped_params['sigma_w']
+        self._beta = ped_params['beta']
+        self._alpha = ped_params['alpha']
+        self._expected_speed = ped_params['expected_speed']
+        self._goal_position = ped_params['goal_position']
     @property
     def lambda1(self):
         return self._lambda1
@@ -122,14 +122,14 @@ class Pedestrian_Base:
         return self._goal_position
 
 class Agent_Base:
-    def __init__(self):
-        self._lambda1 = 2.33
-        self._lambda2 = 2.073
-        self._sigma_d = 0.361
-        self._sigma_w = 2.088
-        self._beta = 1.462
-        self._goal_position = np.array([700., 300.])
-        self._expected_speed = 50.
+    def __init__(self, agent_params):
+        self._lambda1 = agent_params['lambda1']
+        self._lambda2 = agent_params['lambda2']
+        self._sigma_d = agent_params['sigma_d']
+        self._sigma_w = agent_params['sigma_w']
+        self._beta = agent_params['beta']
+        self._expected_speed = agent_params['expected_speed']
+        self._goal_position = agent_params['goal_position']
     @property
     def lambda1(self):
         return self._lambda1
@@ -161,12 +161,15 @@ class LTA_Base:
     No matter what initial state it is, the base is always the same
     """
     # including pedestrian information and time counts
-    def __init__(self, state_dims):
+    def __init__(self, state_dims, agent_params, ped_params_list):
         self._step_time = 0.4
         self._frame_per_second = 1. / self._step_time
         self._p2m = 0.02
-        self._ped_list = [Pedestrian_Base()]
-        self._agent = Agent_Base()
+        self._ped_list = []
+        for ped_index in range(len(ped_params_list)):
+            ped_params = ped_params_list[ped_index]
+            self._ped_list.append(Pedestrian_Base(ped_params))
+        self._agent = Agent_Base(agent_params)
         self._lambda1 = np.hstack([ped.lambda1 for ped in self._ped_list])
         self._lambda2 = np.hstack([ped.lambda2 for ped in self._ped_list])
         self._sigma_d = np.hstack([ped.sigma_d for ped in self._ped_list])
@@ -680,11 +683,110 @@ def RMSprop(initial_value, energy_and_gradient_function, parameters):
         energy_list.append(energy)
     return (energy_list, value)
 
-"""
-initial_state = np.array([100., 300.000001, 700., 300., 50., 0., -50., 0.])
-base = LTA_Base(8)
-model = LTA_Model(base)
-controller = Initial_LTA_Controller(base, model)
-actions, states = controller.generate_steps(initial_state)
-display_states(base, states)
-"""
+def test1():
+    ped_params = {
+        'lambda1': 2.33,
+        'lambda2': 2.073,
+        'sigma_d': 0.361,
+        'sigma_w': 2.088,
+        'beta': 1.462,
+        'alpha': 0.73,
+        'expected_speed': 50.,
+        'goal_position': np.array([100., 300.000001])
+        }
+    agent_params = {
+        'lambda1': 2.33,
+        'lambda2': 2.073,
+        'sigma_d': 0.361,
+        'sigma_w': 2.088,
+        'beta': 1.462,
+        'expected_speed': 50.,
+        'goal_position': np.array([700., 300.])
+        }
+    initial_state = np.array([100., 300.000001, 700., 300., 50., 0., -50., 0.])
+    base = LTA_Base(8, agent_params, [ped_params])
+    model = LTA_Model(base)
+    controller = Initial_LTA_Controller(base, model)
+    actions, states = controller.generate_steps(initial_state)
+    display_states(base, states)
+
+def test2():
+    ped_params1 = {
+        'lambda1': 2.33,
+        'lambda2': 2.073,
+        'sigma_d': 0.361,
+        'sigma_w': 2.088,
+        'beta': 1.462,
+        'alpha': 0.73,
+        'expected_speed': 50.,
+        'goal_position': np.array([100., 320.000001])
+        }
+    ped_params2 = {
+        'lambda1': 2.33,
+        'lambda2': 2.073,
+        'sigma_d': 0.361,
+        'sigma_w': 2.088,
+        'beta': 1.462,
+        'alpha': 0.73,
+        'expected_speed': 50.,
+        'goal_position': np.array([100., 280.000001])
+        }
+    agent_params = {
+        'lambda1': 2.33,
+        'lambda2': 2.073,
+        'sigma_d': 0.361,
+        'sigma_w': 2.088,
+        'beta': 1.462,
+        'expected_speed': 50.,
+        'goal_position': np.array([700., 300.])
+        }
+    initial_state = np.array([100., 300.000001, 700., 320., 700., 280., 50., 0., -50., 0., -50., 0.])
+    base = LTA_Base(12, agent_params, [ped_params1, ped_params2])
+    model = LTA_Model(base)
+    controller = Initial_LTA_Controller(base, model)
+    actions, states = controller.generate_steps(initial_state)
+    display_states(base, states)
+
+def test3():
+    ped_count = 9
+    random.seed(1.)
+    ped_params = {
+        'lambda1': 2.33,
+        'lambda2': 2.073,
+        'sigma_d': 0.361,
+        'sigma_w': 2.088,
+        'beta': 1.462,
+        'alpha': 0.73,
+        'expected_speed': 50.,
+        'goal_position': np.array([100., 300.000001])
+        }
+    agent_params = {
+        'lambda1': 2.33,
+        'lambda2': 2.073,
+        'sigma_d': 0.361,
+        'sigma_w': 2.088,
+        'beta': 1.462,
+        'expected_speed': 50.,
+        'goal_position': np.array([700., 300.])
+        }
+    ped_params_list = []
+    ped_initial_position = []
+    for i in range(ped_count):
+        y = 300. + random.gauss(0., 100.)
+        x_start = 700.
+        x_end = 100.
+
+        cp_ped_params = ped_params.copy()
+        cp_ped_params['goal_position'] = np.array([x_end, y])
+
+        ped_params_list.append(cp_ped_params)
+        ped_initial_position.append(np.array([x_start, y]))
+
+    initial_state = np.hstack([np.array([100., 300.000001]), np.hstack(ped_initial_position), np.array([50.,0.]), np.tile(np.array([-50.,0.]),ped_count)])
+    base = LTA_Base((ped_count + 1)*4, agent_params, ped_params_list)
+    model = LTA_Model(base)
+    random.seed(time.time())
+    controller = Initial_LTA_Controller(base, model)
+    actions, states = controller.generate_steps(initial_state)
+    display_states(base, states)
+test3()
